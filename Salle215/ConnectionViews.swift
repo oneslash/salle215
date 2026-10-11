@@ -186,11 +186,6 @@ struct LiveTraceDetailView: View {
                 }
             } else if let trace = store.data.trace(traceID) {
                 TraceDetailView(trace: trace)
-                    .safeAreaInset(edge: .bottom) {
-                        Text("Steps within the loaded 7-day period. Older steps may be outside this window.")
-                            .font(.caption).foregroundStyle(Palette.muted).padding(10)
-                            .frame(maxWidth: .infinity).background(Palette.background)
-                    }
             }
         }
         .task(id: "\(attempt)-\(store.liveTo.timeIntervalSince1970)") {

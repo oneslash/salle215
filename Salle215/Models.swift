@@ -158,7 +158,12 @@ struct TraceRecord: Hashable, Identifiable {
     var failure: TraceSpan? { spans.first(where: \.failed) }
     var status: TraceStatus { failure != nil ? .error : duration >= Self.slowSeconds ? .slow : .ok }
     var prompt: PromptReference? { spans.lazy.compactMap(\.prompt).first }
-    var title: String { input?.summary ?? name }
+    var displayName: String {
+        let operation = name.hasPrefix("handle-") ? String(name.dropFirst(7)) : name
+        let words = operation.replacingOccurrences(of: "-", with: " ").replacingOccurrences(of: "_", with: " ")
+        return words.prefix(1).uppercased() + words.dropFirst()
+    }
+    var title: String { input?.summary ?? displayName }
     var searchText: String {
         [id, name, session, user, input?.summary ?? "", output?.summary ?? "", failure?.statusMessage ?? ""].joined(separator: " ")
     }
@@ -450,6 +455,7 @@ final class AppStore {
         connectionError = nil
         defer { if generation == connectionGeneration { isLoading = false } }
         do {
+            guard seenCursors.count <= 100 else { throw LangfuseError.pagination }
             let page = try await client.observations(from: liveFrom, to: liveTo, cursor: cursor)
             try Task.checkCancellation()
             guard generation == connectionGeneration else { return }
@@ -458,7 +464,7 @@ final class AppStore {
             nextCursor = page.meta.cursor
             rebuildLiveData()
         } catch is CancellationError {} catch {
-            if generation == connectionGeneration { connectionError = error.localizedDescription }
+            if !Task.isCancelled && generation == connectionGeneration { connectionError = error.localizedDescription }
         }
     }
 

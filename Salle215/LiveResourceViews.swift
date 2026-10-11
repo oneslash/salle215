@@ -192,20 +192,15 @@ struct LiveScoresView: View {
     @State private var loading = false
     @State private var attempt = 0
     var body: some View {
-        SectionHeading(title: "Scores")
+        SectionHeading(title: "Scores", detail: store.backend.traceScores[traceID].map { "\($0.count)" })
         if loading { ProgressView("Loading scores…") }
         if let error { BackendErrorView(error: error) { attempt += 1 } }
         if let scores = store.backend.traceScores[traceID] {
-            SurfaceGroup {
+            VStack(alignment: .leading, spacing: 14) {
                 ForEach(scores) { score in
-                    if score.id != scores.first?.id { RowDivider() }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("\(score.name) · \(score.formatted)").font(.subheadline.weight(.semibold))
-                        Text("\(score.dataType.lowercased()) · \(score.subject?.kind ?? "subject") \(score.subject?.id ?? "")").font(.caption).foregroundStyle(Palette.muted)
-                        if let comment = score.comment, !comment.isEmpty { Text(comment).font(.subheadline).textSelection(.enabled) }
-                    }.padding(16)
+                    TraceScoreRow(score: score)
                 }
-                if scores.isEmpty { Text("No scores recorded").font(.subheadline).foregroundStyle(Palette.muted).padding(16) }
+                if scores.isEmpty { Text("No scores recorded").font(.subheadline).foregroundStyle(Palette.muted).padding(.vertical, 8) }
             }
         }
         Color.clear.frame(height: 0).task(id: "\(traceID):\(attempt)") {
@@ -217,9 +212,55 @@ struct LiveScoresView: View {
     }
 }
 
+private struct TraceScoreRow: View {
+    let score: RemoteScore
+    private var rating: ReviewRating? { score.rating }
+    private var color: Color {
+        guard let rating else { return Palette.ink }
+        return rating.score == .good ? Palette.green : Palette.orange
+    }
+    private var title: String {
+        guard let rating else { return score.formatted }
+        return rating.score == .good ? "Good" : "Needs work"
+    }
+    private var symbol: String {
+        guard let rating else {
+            if case .bool(let value) = score.value { return value ? "checkmark.circle" : "xmark.circle" }
+            return score.dataType == "NUMERIC" ? "number" : "textformat"
+        }
+        return rating.score == .good ? "hand.thumbsup.fill" : "hand.thumbsdown.fill"
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("\(score.dataType.lowercased()) · \(score.formatted)").font(.subheadline)
+                    if let subject = score.subject {
+                        Text("\(subject.kind.capitalized) ID: \(subject.id)")
+                            .font(.caption).foregroundStyle(Palette.muted).textSelection(.enabled)
+                    }
+                    if let rating, !rating.reasons.isEmpty {
+                        Text(rating.reasons.joined(separator: " · ")).font(.subheadline)
+                    }
+                }.padding(.top, 8)
+            } label: {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: symbol).font(.system(size: 19)).foregroundStyle(color).frame(width: 24).padding(.top, 2)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(title).font(.body.weight(.semibold)).foregroundStyle(color)
+                        Text(score.name).font(.subheadline).foregroundStyle(Palette.muted)
+                    }
+                }.frame(minHeight: 44, alignment: .leading)
+            }.tint(Palette.muted).accessibilityIdentifier("score-\(score.id)")
+            if let comment = score.comment, !comment.isEmpty {
+                Text(comment).font(.subheadline).textSelection(.enabled).padding(.leading, 36)
+            }
+        }.padding(.vertical, 4)
+    }
+}
+
 struct LiveReviewView: View {
     @Environment(AppStore.self) private var store
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selectedID: String?
     @State private var loadedID: String?
     @State private var loading = false
@@ -228,7 +269,7 @@ struct LiveReviewView: View {
     @State private var reasons = Set<String>()
     @State private var comment = ""
     @State private var feedback = false
-    @State private var contextExpanded = true
+    @State private var contextExpanded = false
     @State private var retryAction: (@MainActor () async throws -> Void)?
     private let options = ["Incorrect", "Incomplete", "Ignores context", "Tone", "Other"]
     private var trace: TraceRecord? { selectedID.flatMap { store.data.trace($0) } ?? store.data.traces.first }
@@ -240,73 +281,82 @@ struct LiveReviewView: View {
         return trace.output != nil || trace.spans.contains { $0.type == .generation && $0.output != nil }
     }
     var body: some View {
-        Screen {
-            ScreenTitle(title: "Review")
-            if loading { ProgressView("Loading answer and reviews…").padding(.top, 16) }
-            if let error { BackendErrorView(error: error) {
-                if let retryAction { run(retryAction) } else { attempt += 1 }
-            } }
-            if let trace {
-                HStack {
-                    Text("Answer quality").font(.subheadline.weight(.semibold))
-                    Spacer()
-                    Text("\(position + 1) of \(store.data.traces.count) loaded").font(.subheadline).foregroundStyle(Palette.muted)
-                }.padding(.top, 18)
-                ProgressView(value: Double(position), total: Double(max(store.data.traces.count, 1))).tint(Palette.primary).padding(.top, 8)
-                if loadedID == trace.id {
-                    if let input = trace.input ?? trace.spans.first(where: { $0.type == .generation })?.input { QuestionBubble(text: input.summary) }
-                    let output = trace.output ?? trace.spans.last(where: { $0.type == .generation })?.output
-                    if let output { AgentAnswer(label: "Agent answer", text: output.summary) }
-                    else { Text("No answer output recorded. Open the trace to inspect its steps.").font(.subheadline).foregroundStyle(Palette.muted).padding(.top, 16) }
-                    let retrievers = trace.spans.filter { $0.type == .retriever && $0.output != nil }
-                    if !retrievers.isEmpty {
-                        DisclosureGroup("Recorded retrieval context · \(retrievers.count) steps", isExpanded: $contextExpanded) {
-                            ForEach(retrievers) { span in Text(span.name).font(.headline); ContentBlocks(content: span.output) }
-                        }.font(.subheadline).padding(14).card(.rect(cornerRadius: 18)).padding(.top, 20)
-                    }
-                    if let rating = store.backend.rating(trace.id) {
-                        Label(rating.score == .good ? "Reviewed as good" : "Reviewed as needs work", systemImage: "checkmark.circle").padding(.top, 20)
-                        if !rating.comment.isEmpty { Text(rating.comment).font(.subheadline) }
-                        if store.backend.ownScores[trace.id] != nil {
-                            Button("Undo saved review") { run { try await store.backend.undoReview(trace.id) } }.disabled(busy).padding(.top, 10)
+        ScrollViewReader { scroll in
+            Screen(horizontalPadding: 24) {
+                ReviewHeader(progress: trace == nil ? nil : "\(position + 1) of \(store.data.traces.count)", skip: trace == nil ? nil : {
+                    selectedID = store.data.traces[min(position + 1, store.data.traces.count - 1)].id
+                }, skipDisabled: position >= store.data.traces.count - 1 || busy)
+                    .id("reviewTop")
+                if loading { ProgressView("Loading answer and reviews…").padding(.top, 16) }
+                if let error { BackendErrorView(error: error) {
+                    if let retryAction { run(retryAction) } else { attempt += 1 }
+                } }
+                if let trace {
+                    if loadedID == trace.id {
+                        let input = trace.input ?? trace.spans.first(where: { $0.type == .generation })?.input
+                        let output = trace.output ?? trace.spans.last(where: { $0.type == .generation })?.output
+                        ReviewConversation(question: input?.summary, answer: output).padding(.top, 24)
+                        if output == nil {
+                            Text("No answer output recorded. Open the trace to inspect its steps.").font(.subheadline).foregroundStyle(Palette.muted).padding(.top, 16)
                         }
-                    } else if output != nil {
-                        if feedback {
-                            SectionHeading(title: "What needs work?")
-                            ForEach(options, id: \.self) { reason in
-                                Toggle(reason, isOn: Binding(get: { reasons.contains(reason) }, set: { if $0 { reasons.insert(reason) } else { reasons.remove(reason) } }))
-                                    .frame(minHeight: 44)
+                        if let rating = store.backend.rating(trace.id) {
+                            Label(rating.score == .good ? "Reviewed as good" : "Reviewed as needs work", systemImage: "checkmark.circle").padding(.top, 20)
+                            if !rating.comment.isEmpty { Text(rating.comment).font(.subheadline) }
+                            if store.backend.ownScores[trace.id] != nil {
+                                Button("Undo saved review") { run { try await store.backend.undoReview(trace.id) } }.disabled(busy).padding(.top, 10)
                             }
-                            TextField("Note (optional)", text: $comment, axis: .vertical).lineLimit(3...6).padding(14).card(.rect(cornerRadius: 16))
-                            PrimaryButton(title: "Save rating") { save(trace.id, good: false) }
-                                .disabled(busy).padding(.top, 14)
-                            Button("Cancel feedback") { feedback = false }.padding(.top, 12)
+                        } else if output != nil {
+                            if feedback {
+                                Text("What needs work?").font(.headline).padding(.top, 24)
+                                ReviewReasonChoices(options: options, reasons: $reasons).padding(.top, 12)
+                                TextField("Note (optional)", text: $comment, axis: .vertical).lineLimit(3...6)
+                                    .textFieldStyle(.plain).padding(.top, 16)
+                                Button("Save rating") { save(trace.id, good: false) }
+                                    .font(.body.weight(.semibold)).foregroundStyle(Palette.green).frame(minHeight: 44)
+                                    .disabled(busy).padding(.top, 14)
+                                Button("Cancel feedback") { feedback = false }.padding(.top, 12)
+                            } else if canRate {
+                                ReviewDecisions(needsWork: { feedback = true }, good: { save(trace.id, good: true) }, needsWorkID: "Needs work", goodID: "Good")
+                                    .disabled(busy).padding(.top, 24)
+                            }
                         }
+                        let retrievers = trace.spans.filter { $0.type == .retriever && $0.output != nil }
+                        if !retrievers.isEmpty {
+                            ReviewSources(title: "\(retrievers.count) retrieval \(retrievers.count == 1 ? "step" : "steps")", expanded: $contextExpanded) {
+                                ForEach(retrievers) { span in
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(span.name).font(.subheadline.weight(.semibold))
+                                        if let output = span.output {
+                                            let text = switch output {
+                                            case .text(let text): text
+                                            case .messages(let messages): messages.map { "\($0.role.capitalized)\n\($0.content)" }.joined(separator: "\n\n")
+                                            }
+                                            Text(text).font(.subheadline).foregroundStyle(Palette.muted).textSelection(.enabled)
+                                        }
+                                    }
+                                }
+                            }.padding(.top, 28)
+                        }
+                        ReviewTraceLink(traceID: trace.id).padding(.top, retrievers.isEmpty ? 28 : 8)
                     }
-                    NavigationLink(value: AppRoute.trace(trace.id)) { RelatedRow(title: "Trace \(trace.id)", detail: "\(formatDuration(trace.duration)) · \(formatCost(trace.cost))", symbol: "list.bullet.indent") }.buttonStyle(.plain).padding(.top, 20)
+                    if position > 0 {
+                        Button("Previous answer") { selectedID = store.data.traces[position - 1].id }
+                            .disabled(busy).frame(minHeight: 44).padding(.top, 8)
+                    }
+                } else if !loading {
+                    ContentUnavailableView("No traces to review", systemImage: "checkmark.circle", description: Text("Load activity or refresh the connection to find answers."))
                 }
-                HStack {
-                    Button("Previous") { selectedID = store.data.traces[max(0, position - 1)].id }.disabled(position == 0 || busy)
-                    Spacer()
-                    Button("Next / Skip") { selectedID = store.data.traces[min(position + 1, store.data.traces.count - 1)].id }.disabled(position >= store.data.traces.count - 1 || busy)
-                }.padding(.top, 20)
-            } else if !loading {
-                ContentUnavailableView("No traces to review", systemImage: "checkmark.circle", description: Text("Load activity or refresh the connection to find answers."))
+                if store.nextCursor != nil { Button("Load more traces") { Task { await store.loadMoreObservations() } }.disabled(store.isLoading || busy).padding(.top, 20) }
+                if trace != nil { Text("Ratings are saved to Langfuse.").font(.caption).foregroundStyle(Palette.muted).padding(.top, 16) }
             }
-            if store.nextCursor != nil { Button("Load more traces") { Task { await store.loadMoreObservations() } }.disabled(store.isLoading || busy).padding(.top, 20) }
-            if trace != nil { Text("Ratings are saved to Langfuse.").font(.footnote).foregroundStyle(Palette.muted).padding(.top, 16) }
+            .onChange(of: trace?.id) { scroll.scrollTo("reviewTop", anchor: .top) }
         }
-        .safeAreaInset(edge: .bottom) {
-            if canRate && !feedback {
-                ReviewDecisions(needsWork: { feedback = true }, good: { if let trace { save(trace.id, good: true) } }, needsWorkID: "Needs work", goodID: "Good")
-                    .disabled(busy).padding(16).frame(maxWidth: 640).frame(maxWidth: .infinity).background(Palette.background)
-            }
-        }
+        .navigationBarTitleDisplayMode(.inline)
         .task(id: key) {
             guard let id = trace?.id else { return }
             selectedID = id
             retryAction = nil
-            loading = true; loadedID = nil; error = nil; feedback = false; contextExpanded = true; reasons = []; comment = ""
+            loading = true; loadedID = nil; error = nil; feedback = false; contextExpanded = false; reasons = []; comment = ""
             do {
                 try await store.loadTrace(id)
                 try await store.backend.loadScores(id)

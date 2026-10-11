@@ -27,59 +27,164 @@ struct AppDestinations: ViewModifier {
 struct TracesView: View {
     @Environment(AppStore.self) private var store
     @Environment(WindowState.self) private var window
-    @State private var chipPosition = ScrollPosition(idType: TraceFilter.self)
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var nearBottom = false
+    @State private var paginationTask: Task<Void, Never>?
+
+    private var canLoadMore: Bool {
+        let needsRows = nearBottom || store.traces(window.filter, name: window.traceName, in: window.range).isEmpty
+        return store.isLive && needsRows && window.tab == .traces && window.tracePath.isEmpty
+            && store.nextCursor != nil && !store.isLoading && store.connectionError == nil
+    }
+
     var body: some View {
-        @Bindable var window = window
         let traces = store.traces(window.filter, name: window.traceName, in: window.range)
-        Screen {
-            ScreenTitle(title: "Traces")
-            if store.isLive { LiveLoadingStatus() }
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    Menu {
-                        Picker("Time range", selection: $window.range) {
-                            ForEach(TimeRange.allCases) { range in Text(range.label).tag(range) }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                if traces.isEmpty && !store.isLoading {
+                    ContentUnavailableView {
+                        Label("No matching traces", systemImage: "list.bullet.indent")
+                    } description: {
+                        Text(store.isLive && store.nextCursor != nil
+                             ? "Checking more traces in this window…"
+                             : "Try a wider time range or clear the filters.")
+                    } actions: {
+                        if window.filter != .all || window.traceName != nil {
+                            Button("Clear filters") { window.filter = .all; window.traceName = nil }
                         }
-                    } label: {
-                        ChipLabel(title: window.range.title, symbol: "chevron.down", selected: false)
-                    }.accessibilityLabel("Time range, \(window.range.label)").accessibilityIdentifier("traceRange")
-                    if let name = window.traceName {
-                        FilterChip(title: name, symbol: "xmark", selected: true) { window.traceName = nil }
-                            .accessibilityLabel("Showing \(name) only. Remove filter")
-                            .accessibilityIdentifier("clearTraceName")
-                    }
-                    ForEach(TraceFilter.allCases, id: \.self) { filter in
-                        FilterChip(title: chipTitle(filter), selected: window.filter == filter) { window.filter = filter }
-                            .id(filter).accessibilityIdentifier("filter-\(filter.rawValue)")
-                    }
-                }.padding(.vertical, 4)
-            }
-            .scrollIndicators(.hidden).scrollPosition($chipPosition).padding(.top, 14)
-            // Overview can select a chip that the name chip pushes offscreen.
-            .onAppear { chipPosition.scrollTo(id: window.filter) }
-            .onChange(of: window.filter) { withAnimation { chipPosition.scrollTo(id: window.filter) } }
-            SectionHeading(title: window.range.label, detail: "\(traces.count)")
-            if traces.isEmpty {
-                ContentUnavailableView {
-                    Label("No matching traces", systemImage: "list.bullet.indent")
-                } description: {
-                    Text("Try a wider time range or clear the filters.")
-                } actions: {
-                    if window.filter != .all || window.traceName != nil {
-                        Button("Clear filters") { window.filter = .all; window.traceName = nil }
-                    }
-                    if window.range != .week { Button("Show last 7 days") { window.range = .week } }
-                    if store.isLive && store.nextCursor != nil {
-                        Button("Load more traces") { Task { await store.loadMoreObservations() } }.disabled(store.isLoading)
+                        if window.range != .week { Button("Show last 7 days") { window.range = .week } }
                     }
                 }
-            } else { TraceList(traces: traces) }
-        }.navigationBarTitleDisplayMode(.inline)
-            .refreshable { if store.isLive { await store.refreshObservations() } }
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(traces) { trace in
+                        NavigationLink(value: AppRoute.trace(trace.id)) { TraceRow(trace: trace) }
+                            .buttonStyle(.plain).accessibilityIdentifier("trace-\(trace.id)")
+                    }
+                }
+                if store.isLive {
+                    paginationFooter
+                        .onScrollVisibilityChange(threshold: 0.1) { nearBottom = $0 }
+                }
+            }
+            .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 28)
+            .frame(maxWidth: 640).frame(maxWidth: .infinity)
+        }
+        .background(Palette.background)
+        .accessibilityIdentifier("traceScroll")
+        .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: canLoadMore, initial: true) { _, ready in
+            if ready { loadNextPage() }
+        }
+        .onDisappear { paginationTask?.cancel(); paginationTask = nil }
+        .refreshable { if store.isLive { await store.refreshObservations() } }
     }
-    private func chipTitle(_ filter: TraceFilter) -> String {
+
+    private var header: some View {
+        return VStack(alignment: .leading, spacing: 0) {
+            ScreenTitle(title: "Traces")
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) { rangeMenu; Spacer(minLength: 12); loadedCount }
+                VStack(alignment: .leading, spacing: 4) { rangeMenu; loadedCount }
+            }.padding(.top, 16)
+            if let name = window.traceName {
+                Button { window.traceName = nil } label: {
+                    HStack(spacing: 8) {
+                        Text(name).lineLimit(2)
+                        Image(systemName: "xmark").font(.system(size: 12, weight: .semibold))
+                    }.frame(minHeight: 44)
+                }
+                .buttonStyle(.plain).font(.subheadline)
+                .accessibilityLabel("Showing \(name) only. Remove filter")
+                .accessibilityIdentifier("clearTraceName")
+            }
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 0) { filterButtons }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 24) { filterButtons }
+                    VStack(alignment: .leading, spacing: 0) { filterButtons }
+                }
+            }
+        }.padding(.bottom, 18)
+    }
+
+    private var rangeMenu: some View {
+        @Bindable var window = window
+        return Menu {
+            Picker("Time range", selection: $window.range) {
+                ForEach(TimeRange.allCases) { range in Text(range.label).tag(range) }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text(window.range.label)
+                Image(systemName: "chevron.down").font(.system(size: 12, weight: .semibold))
+            }.font(.subheadline).frame(minHeight: 44)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Time range, \(window.range.label)").accessibilityIdentifier("traceRange")
+    }
+
+    private var loadedCount: some View {
+        Text("\(store.traces(.all, name: window.traceName, in: window.range).count) loaded")
+            .font(.footnote).foregroundStyle(Palette.muted)
+            .fixedSize(horizontal: true, vertical: false)
+            .accessibilityIdentifier("traceLoadedCount")
+            .accessibilityHint(store.isLive ? "Filters apply to loaded traces. More traces load as you scroll." : "")
+    }
+
+    private var filterButtons: some View {
+        ForEach(TraceFilter.allCases, id: \.self) { filter in
+            Button { window.filter = filter } label: {
+                Text(filterTitle(filter))
+                    .font(.subheadline.weight(window.filter == filter ? .semibold : .regular))
+                    .foregroundStyle(window.filter == filter ? Palette.ink : Palette.muted)
+                    .frame(minHeight: 44, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(window.filter == filter ? [.isSelected] : [])
+            .accessibilityIdentifier("filter-\(filter.rawValue)")
+        }
+    }
+
+    private func filterTitle(_ filter: TraceFilter) -> String {
         if filter == .all { return filter.title }
         return "\(filter.title) \(store.traces(filter, name: window.traceName, in: window.range).count)"
+    }
+
+    private var paginationFooter: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let error = store.connectionError {
+                Text(error).font(.footnote).foregroundStyle(Palette.red)
+                    .accessibilityIdentifier("tracePaginationError")
+                Button(store.nextCursor != nil ? "Retry loading traces" : "Retry refresh") {
+                    guard paginationTask == nil else { return }
+                    paginationTask = Task {
+                        if store.nextCursor != nil { await store.loadMoreObservations() }
+                        else { await store.refreshObservations() }
+                        paginationTask = nil
+                    }
+                }
+                .buttonStyle(.plain).font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+                .disabled(store.isLoading).accessibilityIdentifier("retryTracePagination")
+            } else if store.isLoading || store.nextCursor != nil {
+                ProgressView("Loading more traces…")
+                    .font(.footnote).foregroundStyle(Palette.muted)
+                    .frame(maxWidth: .infinity).accessibilityIdentifier("tracePaginationLoading")
+            }
+        }.frame(minHeight: store.nextCursor != nil || store.isLoading ? 44 : 0)
+            .padding(.top, 16)
+    }
+
+    private func loadNextPage() {
+        guard canLoadMore, paginationTask == nil else { return }
+        paginationTask = Task {
+            defer { paginationTask = nil }
+            // Let lazy row measurements settle before checking the bottom again.
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+            guard canLoadMore, !Task.isCancelled else { return }
+            await store.loadMoreObservations()
+        }
     }
 }
 
@@ -127,28 +232,38 @@ struct TraceList: View {
 }
 
 struct TraceRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let trace: TraceRecord
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: trace.status == .error ? "exclamationmark.circle" : trace.status == .slow ? "clock" : "checkmark.circle")
-                .font(.title3).foregroundStyle(Palette.status(trace.status)).frame(width: 24).padding(.top, 2)
+                .font(.system(size: 20)).foregroundStyle(Palette.status(trace.status)).frame(width: 24).padding(.top, 2)
             VStack(alignment: .leading, spacing: 5) {
                 Text(trace.title).font(.subheadline.weight(.semibold)).lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Text(trace.name).font(.footnote).foregroundStyle(Palette.muted)
-                HStack(alignment: .firstTextBaseline) {
-                    Text("\(formatDuration(trace.duration)) · \(formatCost(trace.cost))").monospacedDigit()
-                    Spacer(minLength: 4)
-                    Text(trace.timestamp, format: .relative(presentation: .numeric, unitsStyle: .narrow))
-                }.font(.footnote).foregroundStyle(Palette.muted)
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 4) { timing; timestamp }
+                        .font(.footnote).foregroundStyle(Palette.muted)
+                } else {
+                    HStack(alignment: .firstTextBaseline) { timing; Spacer(minLength: 4); timestamp }
+                        .font(.footnote).foregroundStyle(Palette.muted)
+                }
                 if let failure = trace.failure {
                     Text(failure.failureTitle).font(.footnote.weight(.medium)).foregroundStyle(Palette.red)
                 }
             }
-            Chevron().padding(.top, 4)
+            Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Palette.muted.opacity(0.6)).padding(.top, 4)
         }.padding(.vertical, 14).padding(.horizontal, 4)
             .frame(maxWidth: .infinity, alignment: .leading).contentShape(.rect)
             .accessibilityElement(children: .combine)
+    }
+    private var timing: some View {
+        Text("\(formatDuration(trace.duration)) · \(formatCost(trace.cost))").monospacedDigit()
+    }
+    private var timestamp: some View {
+        Text(trace.timestamp, format: .relative(presentation: .numeric, unitsStyle: .narrow))
     }
 }
 
@@ -171,27 +286,35 @@ extension TraceSpan {
 
 struct TraceDetailView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let trace: TraceRecord
+    @State private var showDetails = false
+    private var displayName: String { trace.displayName }
     var body: some View {
         Screen {
-            Text(trace.name).font(.title.bold()).accessibilityAddTraits(.isHeader)
-            ViewThatFits(in: .horizontal) {
-                HStack { StatusPill(status: trace.status); metadata }
-                VStack(alignment: .leading, spacing: 6) { StatusPill(status: trace.status); metadata }
-            }.padding(.top, 6)
-            if let input = trace.input { QuestionBubble(text: input.summary) }
-            if let failure = trace.failure { ErrorCard(span: failure, traceID: trace.id).padding(.top, 16) }
-            else if let output = trace.output { AgentAnswer(text: output.summary) }
+            Text(displayName).font(.title.bold()).accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("traceTitle")
+            if displayName != trace.name {
+                Text(trace.name).font(.subheadline).foregroundStyle(Palette.muted).padding(.top, 4)
+            }
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 6) { status; metadata }.padding(.top, 12)
+            } else { ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { status; metadata }
+                VStack(alignment: .leading, spacing: 6) { status; metadata }
+            }.padding(.top, 12) }
+            SectionHeading(title: "Conversation")
+            TraceConversation(trace: trace)
             if let rating = store.ratings[trace.id] {
-                SectionHeading(title: "Review")
-                SurfaceGroup { RatingRow(rating: rating) }
+                SectionHeading(title: "Scores", detail: "1")
+                RatingRow(rating: rating)
             }
             if store.isLive { LiveScoresView(traceID: trace.id) }
-            SectionHeading(title: "Timeline", detail: "\(trace.spans.count) steps")
+            SectionHeading(title: "Execution", detail: "\(trace.spans.count) steps")
             TraceWaterfall(trace: trace)
             if !trace.session.isEmpty || trace.prompt != nil {
                 SectionHeading(title: "Related")
-                SurfaceGroup {
+                VStack(spacing: 4) {
                     if !trace.session.isEmpty {
                         NavigationLink(value: AppRoute.session(trace.session)) {
                             RelatedRow(title: "Session \(trace.session)", detail: "\(sessionCount) \(store.isLive ? "loaded traces" : "traces") · user \(trace.user)", symbol: "bubble.left.and.bubble.right")
@@ -199,10 +322,8 @@ struct TraceDetailView: View {
                     }
                     if let reference = trace.prompt {
                         if let prompt = store.data.prompt(reference.name) {
-                            if !trace.session.isEmpty { RowDivider() }
                             PromptLink(prompt: prompt, version: reference.version)
                         } else if store.isLive {
-                            if !trace.session.isEmpty { RowDivider() }
                             NavigationLink(value: AppRoute.prompt(reference.name, version: reference.version)) {
                                 RelatedRow(title: "Prompt \(reference.name)", detail: "v\(reference.version)", symbol: "doc.text")
                             }.buttonStyle(.plain)
@@ -210,8 +331,26 @@ struct TraceDetailView: View {
                     }
                 }
             }
+            let footer = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+            footer {
+                if store.isLive {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: "info.circle").font(.system(size: 17))
+                        Text("Loaded window · 7 days").font(.footnote)
+                    }.foregroundStyle(Palette.muted)
+                }
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                Button { showDetails = true } label: {
+                    HStack(spacing: 6) {
+                        Text("Details")
+                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
+                    }
+                        .font(.subheadline).foregroundStyle(Palette.muted).frame(minHeight: 44)
+                }.buttonStyle(.plain).accessibilityIdentifier("traceDetails")
+            }.padding(.top, 20)
         }
-        .navigationTitle("Trace \(trace.id)").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Trace").navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showDetails) { TraceDetails(trace: trace, isLive: store.isLive) }
         .toolbar { ToolbarItem(placement: .topBarTrailing) {
             ShareLink(item: "Trace \(trace.id) · \(trace.name)\n\(trace.title)\n\(trace.output?.summary ?? trace.failure?.statusMessage ?? "")") {
                 Label("Share trace", systemImage: "square.and.arrow.up")
@@ -219,11 +358,111 @@ struct TraceDetailView: View {
         } }
     }
     private var sessionCount: Int { store.data.traces.filter { $0.session == trace.session }.count }
+    private var status: some View {
+        Text(trace.status.title).font(.subheadline.weight(.semibold)).foregroundStyle(Palette.status(trace.status))
+    }
     private var metadata: some View {
-        HStack(spacing: 0) {
-            Text("\(formatDuration(trace.duration)) · \(formatCost(trace.cost)) · ")
-            Text(trace.timestamp, format: .relative(presentation: .numeric))
-        }.font(.subheadline).foregroundStyle(Palette.muted).monospacedDigit()
+        Text("\(formatDuration(trace.duration)) · \(formatCost(trace.cost)) · \(trace.timestamp.formatted(.relative(presentation: .numeric)))")
+            .font(.subheadline).foregroundStyle(Palette.muted).monospacedDigit()
+    }
+}
+
+private struct TraceConversation: View {
+    let trace: TraceRecord
+    @State private var expanded = false
+    @State private var copied = false
+    private var answer: String {
+        switch trace.output {
+        case .messages(let messages): (messages.last { $0.role == "assistant" } ?? messages.last)?.content ?? ""
+        default: trace.output?.summary ?? ""
+        }
+    }
+    private var preview: String { answer.components(separatedBy: "\n\n").first ?? answer }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            if let input = trace.input {
+                VStack(alignment: .trailing, spacing: 8) {
+                    Text("User").font(.footnote).foregroundStyle(Palette.muted)
+                    Text(input.summary).font(.body).textSelection(.enabled)
+                        .multilineTextAlignment(.trailing).accessibilityIdentifier("traceInput")
+                }.frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            if trace.output != nil {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Assistant").font(.footnote).foregroundStyle(Palette.muted)
+                    if expanded, let output = trace.output {
+                        switch output {
+                        case .text(let text): Text(text).font(.body).textSelection(.enabled)
+                        case .messages(let messages):
+                            Text(messages.map { "\($0.role.capitalized)\n\($0.content)" }.joined(separator: "\n\n"))
+                                .font(.body).textSelection(.enabled)
+                        }
+                    } else {
+                        Text(preview).font(.body).lineLimit(6).textSelection(.enabled)
+                            .accessibilityIdentifier("traceOutput")
+                    }
+                    HStack {
+                        Button { expanded.toggle() } label: {
+                            Label(expanded ? "Show less" : "Show full output", systemImage: expanded ? "chevron.up" : "chevron.down")
+                                .font(.subheadline).frame(minHeight: 44)
+                        }.accessibilityIdentifier("traceFullOutput")
+                        Spacer(minLength: 8)
+                        Button(copied ? "Copied" : "Copy output", systemImage: copied ? "checkmark" : "document.on.document") {
+                            UIPasteboard.general.string = trace.output?.messages.map(\.content).joined(separator: "\n\n")
+                            copied = true
+                        }.labelStyle(.iconOnly).font(.system(size: 17)).frame(minWidth: 44, minHeight: 44)
+                            .accessibilityIdentifier("copyTraceOutput")
+                    }.buttonStyle(.plain).foregroundStyle(Palette.muted)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let failure = trace.failure { ErrorCard(span: failure, traceID: trace.id) }
+            if trace.input == nil && trace.output == nil && trace.failure == nil {
+                Text("No conversation recorded. Open a step to inspect its content.")
+                    .font(.subheadline).foregroundStyle(Palette.muted)
+            }
+        }.padding(.top, 8)
+    }
+}
+
+private struct TraceDetails: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let trace: TraceRecord
+    let isLive: Bool
+    @State private var copied = false
+    var body: some View {
+        NavigationStack {
+            Screen {
+                VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Trace ID").font(.subheadline).foregroundStyle(Palette.muted)
+                            Spacer()
+                            Button(copied ? "Copied" : "Copy trace ID", systemImage: copied ? "checkmark" : "document.on.document") {
+                                UIPasteboard.general.string = trace.id
+                                copied = true
+                            }.labelStyle(.iconOnly).font(.system(size: 17)).buttonStyle(.plain).frame(minWidth: 44, minHeight: 44)
+                                .accessibilityIdentifier("copyTraceID")
+                        }
+                        Text(trace.id).font(.system(.subheadline, design: .monospaced)).textSelection(.enabled)
+                            .accessibilityIdentifier("traceID")
+                    }
+                    detail("Name", value: trace.name)
+                    detail("Recorded", value: trace.timestamp.formatted(date: .abbreviated, time: .standard))
+                    if !trace.user.isEmpty { detail("User", value: trace.user) }
+                    if isLive {
+                        detail("Time window", value: "Steps within the loaded 7-day period. Older steps may be outside this window.")
+                    }
+                }
+            }.navigationTitle("Trace details").navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Close") { dismiss() } } }
+        }.presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+    }
+    private func detail(_ title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.subheadline).foregroundStyle(Palette.muted)
+            Text(value).font(.body).textSelection(.enabled)
+        }
     }
 }
 
@@ -235,12 +474,13 @@ private struct RatingRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: rating.score == .good ? "hand.thumbsup" : "hand.thumbsdown")
-                .foregroundStyle(rating.score == .good ? Palette.ink : Palette.orange).frame(width: 22)
+                .font(.system(size: 19)).foregroundStyle(rating.score == .good ? Palette.green : Palette.orange).frame(width: 22)
             VStack(alignment: .leading, spacing: 3) {
                 Text(rating.score == .good ? "Good" : "Needs work").font(.body.weight(.semibold))
+                    .foregroundStyle(rating.score == .good ? Palette.green : Palette.orange)
                 if !detail.isEmpty { Text(detail).font(.subheadline).foregroundStyle(Palette.muted) }
             }.frame(maxWidth: .infinity, alignment: .leading)
-        }.padding(16).accessibilityElement(children: .combine).accessibilityIdentifier("traceRating")
+        }.padding(.vertical, 8).accessibilityElement(children: .combine).accessibilityIdentifier("traceRating")
     }
 }
 
@@ -288,7 +528,7 @@ struct ErrorCard: View {
                     }.accessibilityIdentifier("openFailedStep")
                 } else { technicalDetails }
             }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
-                .background(Palette.redFill, in: .rect(cornerRadius: 18))
+                .background(traceID == nil ? Palette.redFill : .clear, in: .rect(cornerRadius: 18))
             if traceID != nil {
                 DisclosureGroup("Technical details", isExpanded: $expanded) { technicalDetails }
                     .font(.subheadline).padding(.horizontal, 4)
@@ -323,62 +563,58 @@ private struct TraceWaterfall: View {
     let trace: TraceRecord
     private var duration: Double { max(trace.duration, trace.spans.map(\.end).max() ?? 0, 0.001) }
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                if !dynamicTypeSize.isAccessibilitySize { Color.clear.frame(width: 188) }
-                HStack {
-                    Text("0s")
-                    Spacer()
-                    Text(formatDuration(duration / 2))
-                    Spacer()
-                    Text(formatDuration(duration))
-                }.font(.caption).monospacedDigit().foregroundStyle(Palette.muted)
-            }.padding(.horizontal, 12).padding(.vertical, 10)
+        VStack(spacing: 16) {
+            if !dynamicTypeSize.isAccessibilitySize { HStack {
+                Text("0 ms")
+                Spacer()
+                Text(formatDuration(duration / 2))
+                Spacer()
+                Text(formatDuration(duration))
+            }.font(.caption).monospacedDigit().foregroundStyle(Palette.muted).accessibilityHidden(true) }
             ForEach(trace.spans) { span in
                 NavigationLink(value: AppRoute.span(trace: trace.id, id: span.id)) {
-                    WaterfallRow(span: span, duration: duration, stacked: dynamicTypeSize.isAccessibilitySize)
+                    WaterfallRow(span: span, duration: duration)
                 }.buttonStyle(.plain).accessibilityIdentifier("span-\(span.id)")
             }
-        }.padding(.bottom, 8).card(.rect(cornerRadius: 18))
+            if trace.spans.isEmpty {
+                Text("No steps recorded").font(.subheadline).foregroundStyle(Palette.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }.padding(.top, 4)
     }
 }
 
 private struct WaterfallRow: View {
     let span: TraceSpan
     let duration: Double
-    let stacked: Bool
     var body: some View {
-        let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 0))
-        layout {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
                 if span.depth > 0 {
-                    Image(systemName: "arrow.turn.down.right").font(.caption2).foregroundStyle(Palette.muted)
-                        .frame(width: CGFloat(min(span.depth, 3)) * 8)
+                    Image(systemName: "arrow.turn.down.right").font(.system(size: 12)).foregroundStyle(Palette.muted)
+                        .frame(width: CGFloat(min(span.depth, 3)) * 10)
                 }
-                SpanTile(span: span)
+                Image(systemName: span.symbol).font(.system(size: 19))
+                    .foregroundStyle(span.failed ? Palette.red : Palette.glyph(span.type)).frame(width: 24)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(span.name).font(.subheadline.weight(.medium)).fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(span.failed ? Palette.red : Palette.ink)
                     Label(formatDuration(span.duration), systemImage: span.failed ? "exclamationmark.circle" : "clock")
                         .font(.caption).monospacedDigit().foregroundStyle(span.failed ? Palette.red : Palette.muted)
                 }
-            }.frame(width: stacked ? nil : 188, alignment: .leading)
+            }.frame(maxWidth: .infinity, alignment: .leading)
             GeometryReader { geometry in
                 let start = min(max(span.start / duration, 0), 1)
                 let length = min(max(span.duration / duration, 0), 1 - start)
-                ZStack(alignment: .leading) {
-                    HStack { grid; Spacer(); grid; Spacer(); grid }
-                    Capsule().fill(Palette.bar(span.type).opacity(span.depth == 0 ? 0.4 : 1))
-                        .frame(width: max(geometry.size.width * length, 3), height: 7)
+                Capsule().fill(span.failed ? Palette.red : Palette.bar(span.type).opacity(span.depth == 0 ? 0.4 : 1))
+                        .frame(width: max(geometry.size.width * length, 3), height: 8)
                         .offset(x: min(geometry.size.width * start, max(geometry.size.width - 3, 0)))
-                }
-            }.frame(height: stacked ? 24 : 60).accessibilityHidden(true)
-        }.padding(.horizontal, 12).padding(.vertical, 4)
-            .background(span.failed ? Palette.redFill.opacity(0.65) : .clear)
+            }.frame(height: 8).accessibilityHidden(true)
+        }.padding(.vertical, 4)
             .contentShape(.rect).accessibilityElement(children: .combine)
             .accessibilityValue("Starts at \(formatDuration(span.start)), duration \(formatDuration(span.duration))")
     }
-    private var grid: some View { Rectangle().fill(Palette.line).frame(width: 0.5) }
 }
 
 struct SpanDetailView: View {

@@ -4,6 +4,52 @@ import XCTest
 final class Salle215UITests: XCTestCase {
     private var app: XCUIApplication!
 
+    func testCaptureWebsiteScreens() throws {
+        guard let output = ProcessInfo.processInfo.environment["WEBSITE_SCREENSHOTS"] else {
+            throw XCTSkip("Set WEBSITE_SCREENSHOTS to refresh the website images")
+        }
+        func capture(_ name: String) throws {
+            try app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: output).appendingPathComponent(name + ".png"))
+        }
+        launch(["--demo", "-AppleInterfaceStyle", "Light", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"])
+        XCTAssertTrue(app.buttons["metric-errors"].waitForExistence(timeout: 10))
+        try capture("overview")
+        app.buttons["metric-errors"].tap()
+        XCTAssertTrue(app.staticTexts["metricValue"].waitForExistence(timeout: 5))
+        try capture("error-rate")
+        app.buttons["Close"].tap()
+        selectTab("Traces")
+        XCTAssertTrue(app.buttons["trace-7F3A"].waitForExistence(timeout: 5))
+        try capture("traces")
+        app.buttons["trace-7F3A"].tap()
+        XCTAssertTrue(app.navigationBars["Trace"].waitForExistence(timeout: 5))
+        try capture("trace")
+        selectTab("Review")
+        XCTAssertTrue(app.buttons["rateGood"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["reviewSources"].value as? String, "Collapsed")
+        try capture("review")
+        app.buttons["needsWork"].tap()
+        XCTAssertTrue(app.staticTexts["feedbackTrace"].waitForExistence(timeout: 5))
+        app.swipeUp(velocity: .slow)
+        scrollTo(app.buttons["reason-Incomplete"])
+        app.buttons["reason-Incomplete"].tap()
+        try capture("feedback")
+        app.buttons["Cancel"].tap()
+        selectTab("Prompts")
+        app.buttons["prompt-support/answer"].tap()
+        scrollTo(app.buttons["comparePrompt"])
+        app.buttons["comparePrompt"].tap()
+        XCTAssertTrue(app.navigationBars["Changes"].waitForExistence(timeout: 5))
+        try capture("prompt-changes")
+        selectTab("Search")
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("a8f2\n")
+        XCTAssertTrue(app.buttons["trace-7F3A"].waitForExistence(timeout: 5))
+        try capture("search")
+    }
+
     func testCaptureAppStoreScreens() throws {
         guard let output = ProcessInfo.processInfo.environment["APP_STORE_SCREENSHOTS"] else {
             throw XCTSkip("Set APP_STORE_SCREENSHOTS to capture submission assets")
@@ -21,7 +67,7 @@ final class Salle215UITests: XCTestCase {
         selectTab("Traces")
         try capture("03-traces")
         app.buttons["trace-7F3A"].tap()
-        XCTAssertTrue(app.navigationBars["Trace 7F3A"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Trace"].waitForExistence(timeout: 5))
         try capture("04-trace-detail")
         selectTab("Review")
         XCTAssertTrue(app.buttons["rateGood"].waitForExistence(timeout: 5))
@@ -65,7 +111,7 @@ final class Salle215UITests: XCTestCase {
         app.buttons["filter-slow"].tap(); try capture("12-traces-slow")
         app.buttons["filter-all"].tap()
         app.buttons["trace-7F3A"].tap()
-        XCTAssertTrue(app.navigationBars["Trace 7F3A"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Trace"].waitForExistence(timeout: 5))
         try capture("13-trace-error")
         scrollTo(app.buttons["span-7F3A.4"]); try capture("14-trace-timeline")
         app.buttons["span-7F3A.4"].tap()
@@ -179,7 +225,7 @@ final class Salle215UITests: XCTestCase {
         if trace.waitForExistence(timeout: 10) {
             let traceID = String(trace.identifier.dropFirst(6))
             trace.tap()
-            XCTAssertTrue(app.navigationBars.matching(NSPredicate(format: "identifier BEGINSWITH 'Trace '")).firstMatch.waitForExistence(timeout: 30))
+            XCTAssertTrue(app.navigationBars["Trace"].waitForExistence(timeout: 30))
             try capture("11-trace-detail")
             let step = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'span-' ")).firstMatch
             scrollTo(step)
@@ -264,6 +310,78 @@ final class Salle215UITests: XCTestCase {
         app.launchArguments = ["--uitesting"] + arguments
         if let fixture { app.launchEnvironment["SALLE215_LIVE_FIXTURE"] = fixture }
         app.launch()
+    }
+
+    func testQualityScoreSelectionAndDetail() {
+        launch(["-AppleLocale", "en_US"], fixture: "quality")
+        let picker = app.buttons["qualityScorePicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 10))
+        scrollTo(picker)
+        XCTAssertTrue(app.staticTexts["62.5%"].exists)
+        attachScreenshot("Quality score picker in Vitals")
+        picker.tap()
+        let search = app.textFields["qualityScoreSearch"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["qualityScore-cart_expected:BOOLEAN"].isSelected)
+        attachScreenshot("Quality score choices")
+        search.tap()
+        search.typeText("no-such-score")
+        XCTAssertTrue(app.staticTexts["No matching scores"].waitForExistence(timeout: 5))
+        app.buttons["Clear search"].tap()
+        search.typeText("NuMeRiC")
+        XCTAssertFalse(app.buttons["qualityScore-cart_expected:BOOLEAN"].exists)
+        app.buttons["qualityScore-cart_expected:NUMERIC"].tap()
+        XCTAssertTrue(search.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["4.2"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["12 numeric scores"].exists)
+        XCTAssertFalse(app.staticTexts["metricValue"].exists)
+        app.buttons["metric-quality"].tap()
+        XCTAssertTrue(app.staticTexts["metricValue"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["metricValue"].label, "4.2")
+        XCTAssertTrue(app.staticTexts["cart_expected · 12 numeric scores"].exists)
+        app.buttons["Close"].tap()
+        picker.tap()
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["qualityScore-cart_expected:NUMERIC"].isSelected)
+        search.tap()
+        search.typeText("support_answer")
+        app.buttons["qualityScore-support_answer_relevance_and_completeness:NUMERIC"].tap()
+        XCTAssertTrue(app.staticTexts["0.9"].waitForExistence(timeout: 5))
+        XCTAssertTrue(picker.isHittable)
+        picker.tap()
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["qualityScore-support_answer_relevance_and_completeness:NUMERIC"].isSelected)
+        app.buttons["Close"].tap()
+        XCTAssertTrue(search.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["0.9"].exists)
+        attachScreenshot("Quality score with a long name")
+    }
+
+    func testQualityScorePickerAtAccessibilityTextSizes() {
+        launch(["-AppleLocale", "en_US", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"], fixture: "quality")
+        let picker = app.buttons["qualityScorePicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 10))
+        scrollTo(picker)
+        picker.tap()
+        let choice = app.buttons["qualityScore-support_answer_relevance_and_completeness:NUMERIC"]
+        XCTAssertTrue(choice.waitForExistence(timeout: 5))
+        scrollTo(choice)
+        XCTAssertGreaterThanOrEqual(choice.frame.height, 44)
+        XCTAssertLessThanOrEqual(choice.frame.maxX, app.frame.maxX)
+        attachScreenshot("Quality score sheet at accessibility text size")
+        choice.tap()
+        scrollTo(picker)
+        XCTAssertTrue(picker.isHittable)
+        XCTAssertGreaterThanOrEqual(picker.frame.height, 44)
+        XCTAssertLessThanOrEqual(picker.frame.height, app.frame.height / 3)
+        XCTAssertGreaterThanOrEqual(picker.frame.minX, app.frame.minX)
+        XCTAssertLessThanOrEqual(picker.frame.maxX, app.frame.maxX)
+        scrollTo(app.buttons["metric-quality"])
+        app.buttons["metric-quality"].tap()
+        XCTAssertTrue(app.staticTexts["metricValue"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["metricValue"].label, "0.9")
+        app.buttons["Close"].tap()
+        attachScreenshot("Quality score at accessibility text size")
     }
 
     func testLiveOverviewTraceAndSession() {
@@ -403,7 +521,7 @@ final class Salle215UITests: XCTestCase {
         app.buttons["metric-errors"].tap()
         app.buttons["metricAction"].tap()
         XCTAssertTrue(app.buttons["trace-7F3A"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.navigationBars["Trace 2E91"].exists)
+        XCTAssertFalse(app.staticTexts["traceTitle"].exists)
     }
 
     func testAttentionOpensOnlyMatchingTraces() {
@@ -420,7 +538,7 @@ final class Salle215UITests: XCTestCase {
         launch()
         selectTab("Traces")
         app.buttons["trace-7F3A"].tap()
-        XCTAssertTrue(app.navigationBars["Trace 7F3A"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Trace"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Provider timeout"].exists)
         app.buttons["openFailedStep"].tap()
         XCTAssertTrue(app.navigationBars["Step"].waitForExistence(timeout: 5))
@@ -438,33 +556,197 @@ final class Salle215UITests: XCTestCase {
         attachScreenshot("Session")
     }
 
+    func testTracesLoadAsYouScroll() throws {
+        launch(["-AppleLocale", "en_US"], fixture: "trace-list")
+        XCTAssertTrue(app.buttons["metric-errors"].waitForExistence(timeout: 10))
+        selectTab("Traces")
+        let count = app.staticTexts["traceLoadedCount"]
+        XCTAssertTrue(count.waitForExistence(timeout: 5))
+        XCTAssertEqual(count.label, "12 loaded")
+        XCTAssertFalse(app.buttons["loadMoreObservations"].exists)
+        XCTAssertFalse(app.buttons["Load more traces"].exists)
+        XCTAssertTrue(app.buttons["trace-list-0"].isHittable)
+        try captureTraceDesign("trace-list-readable")
+        let scroll = app.scrollViews["traceScroll"]
+        // The next page must not load merely because the list was constructed.
+        XCTAssertFalse(app.buttons["trace-list-12"].exists)
+        for _ in 0..<5 {
+            if app.buttons["trace-list-12"].isHittable { break }
+            scroll.swipeUp()
+        }
+        XCTAssertTrue(app.buttons["trace-list-12"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["trace-list-0"].isHittable, "Appending must preserve the scroll position")
+        for _ in 0..<6 {
+            if app.buttons["trace-list-25"].isHittable { break }
+            scroll.swipeUp()
+        }
+        XCTAssertTrue(app.buttons["trace-list-25"].isHittable)
+        XCTAssertFalse(app.otherElements["tracePaginationLoading"].exists, "Exhausted pages must stop loading")
+        for _ in 0..<8 { scroll.swipeDown() }
+        XCTAssertEqual(count.label, "26 loaded")
+        XCTAssertEqual(app.buttons["filter-error"].label, "Errors 2")
+        app.buttons["filter-error"].tap()
+        XCTAssertTrue(app.buttons["trace-list-12"].isHittable)
+        XCTAssertFalse(app.buttons["trace-list-0"].exists)
+    }
+
+    func testTracePaginationErrorNeedsExplicitRetry() {
+        launch(["-AppleLocale", "en_US"], fixture: "trace-list-retry")
+        XCTAssertTrue(app.buttons["metric-errors"].waitForExistence(timeout: 10))
+        selectTab("Traces")
+        let scroll = app.scrollViews["traceScroll"]
+        let retry = app.buttons["retryTracePagination"]
+        for _ in 0..<6 {
+            if retry.isHittable { break }
+            scroll.swipeUp()
+        }
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        scroll.swipeUp()
+        XCTAssertTrue(app.staticTexts["tracePaginationError"].exists)
+        XCTAssertFalse(app.buttons["trace-list-12"].exists, "Scrolling must not retry a failed request")
+        retry.tap()
+        XCTAssertTrue(app.buttons["trace-list-12"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["tracePaginationError"].exists)
+    }
+
+    func testEmptyTraceFilterContinuesAcrossPagesAtLargeText() throws {
+        launch(["-AppleLocale", "en_US", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"], fixture: "trace-list")
+        XCTAssertTrue(app.buttons["metric-errors"].waitForExistence(timeout: 10))
+        selectTab("Traces")
+        XCTAssertTrue(app.buttons["filter-error"].waitForExistence(timeout: 5))
+        app.buttons["filter-error"].tap()
+        let match = app.buttons["trace-list-12"]
+        XCTAssertTrue(match.waitForExistence(timeout: 10), "A filter must search later loaded pages when the first page has no matches")
+        scrollTo(match)
+        XCTAssertTrue(match.isHittable)
+        XCTAssertLessThanOrEqual(match.frame.maxX, app.frame.maxX)
+        try captureTraceDesign("trace-list-large-text")
+        for _ in 0..<4 { app.scrollViews["traceScroll"].swipeUp() }
+        XCTAssertFalse(app.otherElements["tracePaginationLoading"].exists)
+        app.scrollViews["traceScroll"].swipeDown()
+        app.scrollViews["traceScroll"].swipeDown()
+        XCTAssertEqual(app.buttons["filter-error"].label, "Errors 2")
+    }
+
+    func testConversationFirstTraceDetail() throws {
+        launch(["-AppleLocale", "en_US"], fixture: "trace-detail")
+        tab("Traces").tap()
+        app.buttons["trace-2966b30641238103ed2c9d5e4dc24c6"].tap()
+        XCTAssertTrue(app.navigationBars["Trace"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["traceTitle"].label, "Customer message")
+        XCTAssertEqual(app.staticTexts["traceInput"].label, "Trou noir capitaine")
+        XCTAssertEqual(app.staticTexts["traceOutput"].label, "Tu commandes à emporter ou en livraison ?")
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'v2 browse'")).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["Good"].waitForExistence(timeout: 5))
+        attachScreenshot("Conversation-first trace")
+        try captureTraceDesign("trace-detail-conversation")
+        app.buttons["traceFullOutput"].tap()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'v2 browse | Reset'")).firstMatch.waitForExistence(timeout: 5))
+        app.buttons["traceFullOutput"].tap()
+        app.buttons["copyTraceOutput"].tap()
+        XCTAssertEqual(app.buttons["copyTraceOutput"].label, "Copied")
+        let child = app.buttons["span-turn"]
+        scrollTo(child)
+        XCTAssertTrue(child.isHittable)
+        XCTAssertEqual(child.value as? String, "Starts at 55 ms, duration 646 ms")
+        XCTAssertGreaterThanOrEqual(child.frame.width, app.buttons["span-root"].frame.width)
+        attachScreenshot("Full-width execution timeline")
+        try captureTraceDesign("trace-detail-execution")
+        child.tap()
+        XCTAssertTrue(app.navigationBars["Step"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["conversation-turn"].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let details = app.buttons["traceDetails"]
+        scrollTo(details); details.tap()
+        XCTAssertTrue(app.navigationBars["Trace details"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["traceID"].label, "2966b30641238103ed2c9d5e4dc24c6")
+        XCTAssertTrue(app.staticTexts["Steps within the loaded 7-day period. Older steps may be outside this window."].exists)
+        app.buttons["copyTraceID"].tap()
+        XCTAssertEqual(app.buttons["copyTraceID"].label, "Copied")
+        attachScreenshot("Trace metadata")
+        try captureTraceDesign("trace-detail-metadata")
+        app.buttons["Close"].tap()
+        XCTAssertTrue(app.navigationBars["Trace details"].waitForNonExistence(timeout: 5))
+    }
+
+    func testTraceScoresAndTranscriptAtAccessibilityTextSize() throws {
+        launch(["-AppleLocale", "en_US", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"], fixture: "trace-scores")
+        tab("Traces").tap()
+        app.buttons["trace-2966b30641238103ed2c9d5e4dc24c6"].tap()
+        XCTAssertTrue(app.staticTexts["traceOutput"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["traceOutput"].label, "Tu commandes à emporter ou en livraison ?")
+        let output = app.buttons["traceFullOutput"]
+        scrollTo(output); output.tap()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Earlier user turn'")).firstMatch.exists)
+        scrollTo(output); output.tap()
+        for text in ["False", "0.87", "Evaluator note", "Good", "On-topic"] {
+            let element = app.staticTexts[text]
+            scrollTo(element)
+            XCTAssertTrue(element.exists)
+            XCTAssertGreaterThanOrEqual(element.frame.minX, app.frame.minX)
+            XCTAssertLessThanOrEqual(element.frame.maxX, app.frame.maxX)
+        }
+        let child = app.buttons["span-turn"]
+        scrollTo(child)
+        XCTAssertTrue(child.isHittable)
+        XCTAssertGreaterThanOrEqual(child.frame.height, 44)
+        attachScreenshot("Trace timeline at accessibility text size")
+        try captureTraceDesign("trace-detail-large-text")
+        child.tap()
+        XCTAssertTrue(app.navigationBars["Step"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let details = app.buttons["traceDetails"]
+        scrollTo(details)
+        XCTAssertLessThanOrEqual(details.frame.height, 90)
+        try captureTraceDesign("trace-detail-large-text-footer")
+        details.tap()
+        XCTAssertTrue(app.staticTexts["traceID"].waitForExistence(timeout: 5))
+        XCTAssertLessThanOrEqual(app.staticTexts["traceID"].frame.maxX, app.frame.maxX)
+    }
+
+    private func captureTraceDesign(_ name: String) throws {
+        guard let output = ProcessInfo.processInfo.environment["TRACE_DESIGN_OUTPUT"] else { return }
+        try app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: output).appendingPathComponent(name + ".png"))
+    }
+
     func testReviewFeedbackUndoAndCompletion() throws {
         launch()
         selectTab("Review")
+        let sources = app.buttons["reviewSources"]
+        XCTAssertEqual(sources.value as? String, "Collapsed")
+        XCTAssertFalse(app.staticTexts["Reset links are valid for 30 minutes."].exists)
+        XCTAssertLessThanOrEqual(app.buttons["rateGood"].frame.maxY, sources.frame.minY)
+        try captureReviewDesign("review-a-implemented")
+        sources.tap()
+        XCTAssertTrue(app.staticTexts["Reset links are valid for 30 minutes."].exists)
+        try captureReviewDesign("review-a-sources")
+        sources.tap()
         let reviewTrace = app.buttons["reviewTrace"]
-        XCTAssertTrue(reviewTrace.label.contains("7C1D"))
+        XCTAssertEqual(reviewTrace.value as? String, "7C1D")
         app.buttons["rateGood"].tap()
-        XCTAssertTrue(reviewTrace.label.contains("9C2B"))
+        XCTAssertEqual(reviewTrace.value as? String, "9C2B")
+        XCTAssertEqual(sources.value as? String, "Collapsed")
         app.buttons["undoReview"].tap()
-        XCTAssertTrue(reviewTrace.label.contains("7C1D"))
+        XCTAssertEqual(reviewTrace.value as? String, "7C1D")
         app.buttons["needsWork"].tap()
         XCTAssertTrue(app.staticTexts["feedbackTrace"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["feedbackTrace"].label.contains("7C1D"))
         app.buttons["reason-Incomplete"].tap()
         try captureForReport("21-review-feedback")
+        scrollTo(app.textFields["reviewComment"])
         app.textFields["reviewComment"].tap()
         app.textFields["reviewComment"].typeText("Mention link expiry")
         app.buttons["submitReview"].tap()
         XCTAssertTrue(reviewTrace.waitForExistence(timeout: 5))
-        XCTAssertTrue(reviewTrace.label.contains("9C2B"))
+        XCTAssertEqual(reviewTrace.value as? String, "9C2B")
         attachScreenshot("Review")
         app.buttons["rateGood"].tap()
         app.buttons["rateGood"].tap()
         XCTAssertTrue(app.staticTexts["All caught up"].waitForExistence(timeout: 5))
         app.buttons["undoReview"].tap()
-        XCTAssertTrue(reviewTrace.label.contains("D0E4"))
+        XCTAssertEqual(reviewTrace.value as? String, "D0E4")
         reviewTrace.tap()
-        XCTAssertTrue(app.navigationBars["Trace D0E4"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Trace"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["rateGood"].tap()
         XCTAssertTrue(app.buttons["undoReview"].waitForNonExistence(timeout: 8))
@@ -489,17 +771,71 @@ final class Salle215UITests: XCTestCase {
         attachScreenshot("Prompt changes")
     }
 
-    func testReviewControlsStackAtAccessibilityTextSizes() {
+    func testReviewControlsStackAtAccessibilityTextSizes() throws {
         launch(["--demo", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         selectTab("Review")
         let needsWork = app.buttons["needsWork"], good = app.buttons["rateGood"]
         XCTAssertTrue(needsWork.waitForExistence(timeout: 5))
+        scrollTo(good)
         XCTAssertTrue(needsWork.isHittable)
         XCTAssertTrue(good.isHittable)
         XCTAssertLessThanOrEqual(needsWork.frame.maxY, good.frame.minY)
+        XCTAssertLessThanOrEqual(good.frame.maxX, app.frame.maxX)
         attachScreenshot("Review controls at the largest text size")
+        try captureReviewDesign("review-a-large-text")
         good.tap()
-        XCTAssertTrue(app.buttons["reviewTrace"].label.contains("9C2B"))
+        XCTAssertEqual(app.buttons["reviewTrace"].value as? String, "9C2B")
+        XCTAssertTrue(app.staticTexts["Can I change my email address?"].isHittable)
+        try captureReviewDesign("review-a-next-answer-large-text")
+    }
+
+    func testLiveReviewShowsAssistantAndCollapsedFullContext() throws {
+        launch([], fixture: "review")
+        XCTAssertTrue(tab("Review").waitForExistence(timeout: 10))
+        tab("Review").tap()
+        let answer = app.staticTexts["Choose Forgot password. The link expires after 30 minutes."]
+        XCTAssertTrue(answer.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Earlier question in transcript"].exists)
+        let sources = app.buttons["reviewSources"]
+        XCTAssertEqual(sources.value as? String, "Collapsed")
+        XCTAssertLessThanOrEqual(app.buttons["Good"].frame.maxY, sources.frame.minY)
+        try captureReviewDesign("review-a-live")
+        sources.tap()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Reset links are valid for 30 minutes.")).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "We never ask for your password by email.")).firstMatch.exists)
+        sources.tap()
+        app.buttons["Needs work"].tap()
+        scrollTo(app.buttons["reason-Incomplete"])
+        app.buttons["reason-Incomplete"].tap()
+        XCTAssertEqual(app.buttons["reason-Incomplete"].value as? String, "Selected")
+        scrollTo(app.buttons["Save rating"])
+        app.buttons["Save rating"].tap()
+        XCTAssertTrue(app.buttons["Undo saved review"].waitForExistence(timeout: 10))
+        scrollTo(app.buttons["Undo saved review"])
+        app.buttons["Undo saved review"].tap()
+        XCTAssertTrue(app.buttons["Good"].waitForExistence(timeout: 10))
+    }
+
+    private func captureReviewDesign(_ name: String) throws {
+        guard let output = ProcessInfo.processInfo.environment["REVIEW_DESIGN_OUTPUT"] else { return }
+        try app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: output).appendingPathComponent(name + ".png"))
+    }
+
+    func testReviewSkipCollapsesSourcesAndUndoRestoresAnswer() throws {
+        launch()
+        selectTab("Review")
+        let sources = app.buttons["reviewSources"]
+        sources.tap()
+        XCTAssertEqual(sources.value as? String, "Expanded")
+        app.buttons["skipReview"].tap()
+        XCTAssertEqual(app.buttons["reviewTrace"].value as? String, "9C2B")
+        XCTAssertEqual(sources.value as? String, "Collapsed")
+        app.buttons["undoReview"].tap()
+        XCTAssertEqual(app.buttons["reviewTrace"].value as? String, "7C1D")
+        XCTAssertEqual(sources.value as? String, "Collapsed")
+        XCTAssertTrue(app.staticTexts["How do I reset my password?"].isHittable)
+        XCTAssertTrue(app.buttons["undoReview"].waitForNonExistence(timeout: 8))
+        try captureReviewDesign("review-a-implemented")
     }
 
     func testSearchBySessionAndNoResults() {
@@ -512,7 +848,7 @@ final class Salle215UITests: XCTestCase {
         XCTAssertTrue(app.buttons["trace-7F3A"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["trace-9C2B"].exists)
         app.buttons["trace-9C2B"].tap()
-        XCTAssertTrue(app.navigationBars["Trace 9C2B"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Trace"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         field.tap()
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 4) + "no-such-trace")

@@ -40,9 +40,8 @@ struct SampleOverviewView: View {
                 }
             }
             SectionHeading(title: "Vitals")
-            SurfaceGroup {
+            VStack(spacing: 0) {
                 ForEach(MetricKind.allCases) { kind in
-                    if kind != .errors { RowDivider() }
                     Button { selectedMetric = kind } label: {
                         MetricRow(kind: kind, definition: store.data.metrics[kind],
                                   value: snapshot.value(for: kind), range: window.range)
@@ -117,7 +116,7 @@ private struct MetricRow: View {
             }.frame(maxWidth: .infinity, alignment: .leading)
             TrendChart(definition: definition, range: range, warning: value.status == .warn, compact: true)
                 .frame(width: 104, height: 52).accessibilityHidden(true).allowsHitTesting(false)
-        }.padding(12).contentShape(.rect)
+        }.padding(.vertical, 18).contentShape(.rect)
     }
 }
 

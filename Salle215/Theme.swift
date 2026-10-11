@@ -71,11 +71,12 @@ extension TraceSpan.Kind {
 }
 
 struct Screen<Content: View>: View {
+    var horizontalPadding: CGFloat = 16
     @ViewBuilder let content: Content
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) { content }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, horizontalPadding)
                 .padding(.top, 8)
                 .padding(.bottom, 28)
                 .frame(maxWidth: 640)
@@ -169,27 +170,6 @@ struct ContentBlocks: View {
         }
     }
 }
-struct QuestionBubble: View {
-    let text: String
-    var body: some View {
-        HStack {
-            Spacer(minLength: 44)
-            Text(text).padding(.horizontal, 14).padding(.vertical, 12)
-                .background(Palette.fill, in: .rect(cornerRadius: 20))
-        }.padding(.top, 20)
-    }
-}
-struct AgentAnswer: View {
-    var label = "Output"
-    let text: String
-    var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Label(label, systemImage: "sparkles").font(.footnote.weight(.medium)).foregroundStyle(Palette.muted)
-            Text(text).font(.body).textSelection(.enabled)
-        }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 16)
-    }
-}
-
 struct ProjectMenuLabel: View {
     let title: String
     let environment: String
@@ -212,20 +192,16 @@ struct ReviewDecisions: View {
     var needsWorkID = "needsWork"
     var goodID = "rateGood"
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("How is this answer?").font(.subheadline.weight(.semibold))
-            let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 12))
-            layout {
-                decision("Needs work", symbol: "hand.thumbsdown", id: needsWorkID, action: needsWork)
-                decision("Good", symbol: "hand.thumbsup", id: goodID, action: good)
-            }
+        let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 24))
+        layout {
+            decision("Needs work", symbol: "hand.thumbsdown", color: Palette.muted, id: needsWorkID, action: needsWork)
+            decision("Good", symbol: "hand.thumbsup", color: Palette.green, id: goodID, action: good)
         }
     }
-    private func decision(_ title: String, symbol: String, id: String, action: @escaping () -> Void) -> some View {
+    private func decision(_ title: String, symbol: String, color: Color, id: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(title, systemImage: symbol).font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 50).padding(.vertical, 4)
-                .background(Palette.fill, in: .rect(cornerRadius: 16))
+            Label(title, systemImage: symbol).font(.body.weight(.medium)).foregroundStyle(color)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(.rect)
         }.buttonStyle(.plain).accessibilityIdentifier(id)
     }
 }

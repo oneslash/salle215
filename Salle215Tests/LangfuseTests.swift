@@ -176,6 +176,43 @@ struct LangfuseTests {
         #expect(store.connectionError == nil)
     }
 
+    @Test func failedPaginationPreservesRowsAndRetriesTheSameWindow() async throws {
+        let api = StubAPI([(200, firstPage), (500, "{}"), (200, secondPage)])
+        let store = AppStore(reset: true)
+        await store.connect(try credentials(), transport: { try await api.respond($0) })
+        let before = store.data.traces
+        await store.loadMoreObservations()
+        #expect(store.data.traces == before)
+        #expect(store.nextCursor == "page-2")
+        #expect(store.connectionError != nil && !store.isLoading)
+        await store.loadMoreObservations()
+        #expect(store.connectionError == nil && store.nextCursor == nil)
+        #expect(store.data.traces.first?.spans.count == 2)
+        let requests = await api.requests
+        #expect(requests.count == 3)
+        #expect(requests[1].url == requests[2].url)
+    }
+
+    @Test func cancelledPaginationKeepsTheCursorWithoutShowingAnError() async throws {
+        let first = StubAPI([(200, firstPage)]), pending = SuspendedAPI()
+        let store = AppStore(reset: true)
+        await store.connect(try credentials(), transport: { request in
+            let hasCursor = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems?.contains { $0.name == "cursor" } == true
+            if !hasCursor { return try await first.respond(request) }
+            _ = await pending.respond(request)
+            throw URLError(.cancelled)
+        })
+        let before = store.data.traces
+        let task = Task { await store.loadMoreObservations() }
+        await pending.waitUntilStarted()
+        task.cancel()
+        await pending.release()
+        await task.value
+        #expect(store.data.traces == before)
+        #expect(store.nextCursor == "page-2")
+        #expect(store.connectionError == nil && !store.isLoading)
+    }
+
     @Test func emptyProjectConnectsAndKeychainFailureLeavesConnectionUnsaved() async throws {
         let suite = "Salle215LiveTests.\(UUID().uuidString)", vault = MemoryVault()
         let defaults = UserDefaults(suiteName: suite)!

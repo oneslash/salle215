@@ -59,21 +59,18 @@ struct LiveOverviewView: View {
                 }
             }
             SectionHeading(title: state.refreshFailures.isEmpty ? "Vitals" : "Last available vitals")
-            SurfaceGroup {
+            VStack(spacing: 0) {
                 ForEach(MetricKind.allCases) { kind in
-                    if kind != .errors { RowDivider() }
-                    Button { selectedMetric = kind } label: {
-                        LiveMetricRow(kind: kind, data: data, score: score, isLoading: state.isLoading)
-                    }.buttonStyle(.plain).accessibilityIdentifier("metric-\(kind.rawValue)")
-                }
-            }
-            if let scores = data?.scoreAggregates, scores.count > 1 {
-                Menu {
-                    ForEach(scores) { score in
-                        Button("\(score.name) · \(score.dataType.lowercased())") { selectedScoreID = score.id }
+                    if kind == .quality, let scores = data?.scoreAggregates, scores.count > 1 {
+                        LiveQualityMetricRow(data: data, score: score, scores: scores, selectedScoreID: $selectedScoreID) {
+                            selectedMetric = .quality
+                        }
+                    } else {
+                        Button { selectedMetric = kind } label: {
+                            LiveMetricRow(kind: kind, data: data, score: score, isLoading: state.isLoading)
+                        }.buttonStyle(.plain).accessibilityIdentifier("metric-\(kind.rawValue)")
                     }
-                } label: { Label("Quality score: \(score?.name ?? "Choose")", systemImage: "slider.horizontal.3") }
-                    .font(.subheadline).padding(.top, 16).accessibilityIdentifier("qualityScorePicker")
+                }
             }
             if metrics.retryAfter == nil, let failures = state.refreshFailures.isEmpty ? data?.failures : state.refreshFailures, !failures.isEmpty {
                 ForEach(failures.keys.sorted(), id: \.self) { key in
@@ -172,6 +169,147 @@ enum LiveMetricPresentation {
         case .spend: value.formatted(.currency(code: "USD").precision(.fractionLength(2...4)))
         case .quality: score?.dataType == "BOOLEAN" ? String(format: "%.1f%%", value * 100) : value.formatted(.number.precision(.fractionLength(0...3)))
         }
+    }
+}
+
+private struct LiveQualityMetricRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var isChoosingScore = false
+    let data: LiveOverviewData?
+    let score: LiveScoreAggregate?
+    let scores: [LiveScoreAggregate]
+    @Binding var selectedScoreID: String?
+    let showDetail: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 5))
+                : AnyLayout(HStackLayout(spacing: 12))
+            layout {
+                Text("Quality score").font(.subheadline.weight(.medium)).foregroundStyle(Palette.muted)
+                    .fixedSize(horizontal: true, vertical: false)
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
+                Button { isChoosingScore = true } label: {
+                    HStack(spacing: 6) {
+                        Text(score?.name ?? "Choose").lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                        Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
+                    }
+                    .font(.footnote.weight(.medium)).foregroundStyle(Palette.ink)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(Palette.fill, in: .rect(cornerRadius: dynamicTypeSize.isAccessibilitySize ? 14 : 24))
+                    .frame(minHeight: 44)
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Quality score")
+                .accessibilityValue("\(score?.name ?? "Choose"), \(score?.dataType.lowercased() ?? "")")
+                .accessibilityIdentifier("qualityScorePicker")
+            }
+            Button(action: showDetail) {
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(LiveMetricPresentation.value(.quality, data: data, score: score))
+                            .font(.title.bold()).monospacedDigit()
+                        Text(score.map { "\(Int($0.count).formatted()) \($0.dataType.lowercased()) scores" } ?? "No numeric or Boolean scores")
+                            .font(.footnote).foregroundStyle(Palette.muted)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                    Chevron()
+                }.contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Quality score details, \(LiveMetricPresentation.value(.quality, data: data, score: score))")
+            .accessibilityIdentifier("metric-quality")
+        }.padding(16)
+        .sheet(isPresented: $isChoosingScore) {
+            LiveQualityScorePicker(scores: scores, selection: Binding(
+                get: { score?.id ?? "" },
+                set: { selectedScoreID = $0 }
+            ))
+            .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.fraction(0.6), .large])
+            .presentationDragIndicator(.visible)
+        }
+    }
+}
+
+private struct LiveQualityScorePicker: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var search = ""
+    let scores: [LiveScoreAggregate]
+    @Binding var selection: String
+
+    private var filteredScores: [LiveScoreAggregate] {
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        return query.isEmpty ? scores : scores.filter {
+            $0.name.localizedStandardContains(query) || $0.dataType.localizedStandardContains(query)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Quality score").font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                    Spacer(minLength: 8)
+                    Button("Close", systemImage: "xmark") { dismiss() }
+                        .labelStyle(.iconOnly).font(.system(size: 17, weight: .medium))
+                        .frame(width: 44, height: 44)
+                        .background(Palette.fill, in: .circle)
+                        .buttonStyle(.plain)
+                }
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Text("Choose the score shown in Vitals.").font(.subheadline).foregroundStyle(Palette.muted)
+                }
+            }
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Palette.muted).accessibilityHidden(true)
+                TextField("Search scores", text: $search)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled().submitLabel(.search)
+                    .accessibilityIdentifier("qualityScoreSearch")
+                if !search.isEmpty {
+                    Button("Clear search", systemImage: "xmark.circle.fill") { search = "" }
+                        .labelStyle(.iconOnly).foregroundStyle(Palette.muted)
+                        .frame(minWidth: 44, minHeight: 44).buttonStyle(.plain)
+                }
+            }
+            .font(.body).padding(.leading, 14).padding(.trailing, search.isEmpty ? 14 : 0)
+            .frame(minHeight: 50).background(Palette.fill, in: .rect(cornerRadius: 14))
+            ScrollView {
+                LazyVStack(spacing: 4) {
+                    ForEach(filteredScores) { score in
+                        Button {
+                            selection = score.id
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(score.name).font(.body.weight(.medium))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    Text("\(score.dataType.capitalized) · \(Int(score.count).formatted()) \(score.count == 1 ? "score" : "scores")")
+                                        .font(.subheadline).foregroundStyle(Palette.muted)
+                                }.frame(maxWidth: .infinity, alignment: .leading)
+                                Image(systemName: "checkmark").font(.body.weight(.semibold))
+                                    .opacity(selection == score.id ? 1 : 0).accessibilityHidden(true)
+                            }
+                            .padding(12).frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .background(selection == score.id ? Palette.fill : .clear, in: .rect(cornerRadius: 12))
+                            .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selection == score.id ? [.isSelected] : [])
+                        .accessibilityIdentifier("qualityScore-\(score.id)")
+                    }
+                    if filteredScores.isEmpty {
+                        ContentUnavailableView("No matching scores", systemImage: "magnifyingglass", description: Text("Try a different score name or type."))
+                            .padding(.top, 16)
+                    }
+                }
+            }.scrollDismissesKeyboard(.interactively)
+        }
+        .padding(.horizontal, 20).padding(.top, 24)
+        .background(Palette.background)
+        .foregroundStyle(Palette.ink).tint(Palette.primary)
     }
 }
 
