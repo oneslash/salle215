@@ -1,0 +1,61 @@
+name: Salle215
+options:
+  bundleIdPrefix: room215
+  deploymentTarget:
+    iOS: "26.0"
+  xcodeVersion: "27.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    GENERATE_INFOPLIST_FILE: YES
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: 73MJ5ES2M3
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: 4
+targets:
+  Salle215:
+    type: application
+    platform: iOS
+    sources:
+      - path: Salle215
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: room215.salle215
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_CFBundleDisplayName: Salle 215
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+  Salle215Tests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Salle215Tests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: room215.salle215.tests
+    dependencies:
+      - target: Salle215
+  Salle215UITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [Salle215UITests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: room215.salle215.uitests
+    dependencies:
+      - target: Salle215
+schemes:
+  Salle215:
+    build:
+      targets:
+        Salle215: all
+    test:
+      targets:
+        - Salle215Tests
+        - Salle215UITests

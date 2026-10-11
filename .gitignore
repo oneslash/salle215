@@ -1,0 +1,16 @@
+.DS_Store
+build/
+DerivedData/
+DerivedData-Release/
+*.xcuserstate
+xcuserdata/
+*.xcresult
+.wrangler/
+
+/review/
+/reviews/
+/concepts/
+
+.env
+.env.*
+!.env.example

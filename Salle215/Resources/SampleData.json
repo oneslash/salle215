@@ -1,0 +1,935 @@
+{
+  "snapshots": {
+    "hour": {
+      "errors": {
+        "value": "1.2",
+        "status": "warn",
+        "summary": "Above normal · 3 of 246",
+        "detail": "Above normal · usually 0.2–0.6%"
+      },
+      "latency": {
+        "value": "2.7",
+        "status": "ok",
+        "summary": "Normal · 90 ms faster",
+        "detail": "Within the usual 1.8–3.0s"
+      },
+      "spend": {
+        "value": "0.86",
+        "status": "neutral",
+        "summary": "3.6% more than last hour",
+        "detail": "3.6% more than the previous hour"
+      },
+      "quality": {
+        "value": "84",
+        "status": "ok",
+        "summary": "Normal · 6 reviews",
+        "detail": "Within the usual 80–95%"
+      },
+      "models": [
+        0.69,
+        0.17
+      ],
+      "reviews": [
+        5,
+        1
+      ],
+      "failedSteps": {
+        "generate-answer": 3
+      }
+    },
+    "day": {
+      "errors": {
+        "value": "0.8",
+        "status": "warn",
+        "summary": "Above normal · 67 of 8,420",
+        "detail": "Above normal · usually 0.2–0.6%"
+      },
+      "latency": {
+        "value": "2.4",
+        "status": "ok",
+        "summary": "Normal · 180 ms faster",
+        "detail": "Within the usual 1.8–3.0s"
+      },
+      "spend": {
+        "value": "12.84",
+        "status": "neutral",
+        "summary": "8.2% more than yesterday",
+        "detail": "8.2% more than yesterday"
+      },
+      "quality": {
+        "value": "86",
+        "status": "ok",
+        "summary": "Normal · 42 reviews",
+        "detail": "Within the usual 80–95%"
+      },
+      "models": [
+        9.72,
+        3.12
+      ],
+      "reviews": [
+        36,
+        6
+      ],
+      "failedSteps": {
+        "generate-answer": 59,
+        "generate-summary": 8
+      }
+    },
+    "week": {
+      "errors": {
+        "value": "0.6",
+        "status": "warn",
+        "summary": "Above normal · 337 of 56,204",
+        "detail": "Above normal · usually 0.3–0.5%"
+      },
+      "latency": {
+        "value": "2.2",
+        "status": "ok",
+        "summary": "Normal · 220 ms faster",
+        "detail": "Within the usual 1.8–3.0s"
+      },
+      "spend": {
+        "value": "84.16",
+        "status": "neutral",
+        "summary": "4.1% more than last week",
+        "detail": "4.1% more than the previous week"
+      },
+      "quality": {
+        "value": "88",
+        "status": "ok",
+        "summary": "Normal · 285 reviews",
+        "detail": "Within the usual 80–95%"
+      },
+      "models": [
+        63.5,
+        20.66
+      ],
+      "reviews": [
+        251,
+        34
+      ],
+      "failedSteps": {
+        "generate-answer": 298,
+        "generate-summary": 39
+      }
+    }
+  },
+  "metrics": {
+    "errors": {
+      "title": "Error rate",
+      "unit": "%",
+      "cta": "Show failed traces",
+      "series": {
+        "hour": [
+          0.9,
+          1.1,
+          1,
+          1.3,
+          1.2,
+          1,
+          1.4,
+          1.3,
+          1.5,
+          1.2,
+          1.4,
+          1.2
+        ],
+        "day": [
+          0.3,
+          0.3,
+          0.4,
+          0.3,
+          0.4,
+          0.3,
+          0.5,
+          0.4,
+          0.4,
+          0.5,
+          0.6,
+          0.5,
+          0.7,
+          0.6,
+          0.9,
+          0.8,
+          1.1,
+          0.9,
+          1.2,
+          1,
+          1.4,
+          1.3,
+          1.6,
+          1.2
+        ],
+        "week": [
+          0.4,
+          0.5,
+          0.4,
+          0.6,
+          0.5,
+          0.7,
+          0.9
+        ]
+      },
+      "band": {
+        "hour": {
+          "low": 0.2,
+          "high": 0.6
+        },
+        "day": {
+          "low": 0.2,
+          "high": 0.6
+        },
+        "week": {
+          "low": 0.3,
+          "high": 0.5
+        }
+      }
+    },
+    "latency": {
+      "title": "P95 latency",
+      "unit": "s",
+      "cta": "Show slow traces",
+      "series": {
+        "hour": [
+          2.6,
+          2.8,
+          2.7,
+          2.9,
+          2.6,
+          2.7,
+          2.8,
+          2.6,
+          2.7,
+          2.9,
+          2.7,
+          2.7
+        ],
+        "day": [
+          2.9,
+          2.7,
+          2.8,
+          2.6,
+          2.7,
+          2.5,
+          2.6,
+          2.6,
+          2.4,
+          2.5,
+          2.3,
+          2.4,
+          2.4,
+          2.3,
+          2.2,
+          2.4,
+          2.3,
+          2.2,
+          2.3,
+          2.4,
+          2.2,
+          2.3,
+          2.4,
+          2.4
+        ],
+        "week": [
+          2.5,
+          2.4,
+          2.4,
+          2.3,
+          2.2,
+          2.3,
+          2.4
+        ]
+      },
+      "band": {
+        "hour": {
+          "low": 1.8,
+          "high": 3
+        },
+        "day": {
+          "low": 1.8,
+          "high": 3
+        },
+        "week": {
+          "low": 1.8,
+          "high": 3
+        }
+      }
+    },
+    "spend": {
+      "title": "Model spend",
+      "unit": "$",
+      "series": {
+        "hour": [
+          0.06,
+          0.07,
+          0.08,
+          0.07,
+          0.06,
+          0.08,
+          0.07,
+          0.08,
+          0.07,
+          0.06,
+          0.07,
+          0.09
+        ],
+        "day": [
+          0.31,
+          0.28,
+          0.25,
+          0.22,
+          0.24,
+          0.3,
+          0.38,
+          0.45,
+          0.52,
+          0.6,
+          0.66,
+          0.7,
+          0.72,
+          0.69,
+          0.71,
+          0.68,
+          0.64,
+          0.62,
+          0.58,
+          0.55,
+          0.5,
+          0.47,
+          0.44,
+          0.46
+        ],
+        "week": [
+          11.2,
+          12,
+          11.6,
+          12.4,
+          11.9,
+          12.2,
+          12.84
+        ]
+      },
+      "band": {
+        "hour": {
+          "low": 0.03,
+          "high": 0.09
+        },
+        "day": {
+          "low": 0.2,
+          "high": 0.75
+        },
+        "week": {
+          "low": 10,
+          "high": 13.5
+        }
+      }
+    },
+    "quality": {
+      "title": "Good answers",
+      "unit": "%",
+      "cta": "Open review queue",
+      "series": {
+        "hour": [
+          85,
+          84,
+          86,
+          83,
+          85,
+          84,
+          82,
+          84,
+          85,
+          83,
+          84,
+          84
+        ],
+        "day": [
+          88,
+          90,
+          87,
+          89,
+          86,
+          88,
+          85,
+          87,
+          86,
+          84,
+          86,
+          85,
+          87,
+          86,
+          85,
+          86,
+          84,
+          85,
+          86,
+          87,
+          85,
+          86,
+          86,
+          86
+        ],
+        "week": [
+          89,
+          88,
+          90,
+          87,
+          88,
+          87,
+          86
+        ]
+      },
+      "band": {
+        "hour": {
+          "low": 80,
+          "high": 95
+        },
+        "day": {
+          "low": 80,
+          "high": 95
+        },
+        "week": {
+          "low": 80,
+          "high": 95
+        }
+      }
+    }
+  },
+  "traces": [
+    {
+      "id": "7F3A",
+      "name": "answer-question",
+      "minutesAgo": 2,
+      "session": "a8f2",
+      "user": "u_4821",
+      "spans": [
+        {
+          "id": "7F3A.1",
+          "name": "answer-question",
+          "type": "span",
+          "depth": 0,
+          "start": 0,
+          "end": 10,
+          "input": "How do I reset my password?"
+        },
+        {
+          "id": "7F3A.2",
+          "name": "retrieve-context",
+          "type": "retriever",
+          "depth": 1,
+          "start": 0.03,
+          "end": 0.14,
+          "input": "reset password",
+          "output": "3 documents: Password reset · Sign-in help · Account security"
+        },
+        {
+          "id": "7F3A.3",
+          "name": "rank-documents",
+          "type": "tool",
+          "depth": 2,
+          "start": 0.08,
+          "end": 0.13,
+          "input": "3 candidates",
+          "output": "Kept 3 of 3 (minimum score 0.71)"
+        },
+        {
+          "id": "7F3A.4",
+          "name": "generate-answer",
+          "type": "generation",
+          "depth": 1,
+          "start": 0.2,
+          "end": 10,
+          "input": [
+            {
+              "role": "system",
+              "content": "You are a customer support assistant. Answer using the provided context. If you are unsure, ask a clarifying question. Keep instructions short and actionable."
+            },
+            {
+              "role": "user",
+              "content": "How do I reset my password?\n\nContext:\n3 documents: Password reset · Sign-in help · Account security"
+            }
+          ],
+          "model": "Primary model",
+          "usage": {
+            "input": 1204,
+            "output": 0
+          },
+          "promptName": "support/answer",
+          "promptVersion": 12,
+          "cost": 0.002,
+          "level": "ERROR",
+          "statusMessage": "TimeoutError: the model provider did not respond within 10000 ms"
+        }
+      ]
+    },
+    {
+      "id": "7C1D",
+      "name": "answer-question",
+      "minutesAgo": 3,
+      "session": "d5c6",
+      "user": "u_6630",
+      "spans": [
+        {
+          "id": "7C1D.1",
+          "name": "answer-question",
+          "type": "span",
+          "depth": 0,
+          "start": 0,
+          "end": 1.8,
+          "input": "How do I reset my password?",
+          "output": "Choose “Forgot password” on the sign-in screen. We’ll email you a reset link. The link expires after 30 minutes."
+        },
+        {
+          "id": "7C1D.2",
+          "name": "retrieve-context",
+          "type": "retriever",
+          "depth": 1,
+          "start": 0.03,
+          "end": 0.14,
+          "input": "reset password",
+          "output": "3 documents: Password reset · Sign-in help · Account security"
+        },
+        {
+          "id": "7C1D.3",
+          "name": "rank-documents",
+          "type": "tool",
+          "depth": 2,
+          "start": 0.08,
+          "end": 0.13,
+          "input": "3 candidates",
+          "output": "Kept 3 of 3"
+        },
+        {
+          "id": "7C1D.4",
+          "name": "generate-answer",
+          "type": "generation",
+          "depth": 1,
+          "start": 0.18,
+          "end": 1.8,
+          "input": [
+            {
+              "role": "system",
+              "content": "You are a customer support assistant. Answer using the provided context. If you are unsure, ask a clarifying question. Keep instructions short and actionable."
+            },
+            {
+              "role": "user",
+              "content": "How do I reset my password?\n\nContext:\n3 documents: Password reset · Sign-in help · Account security"
+            }
+          ],
+          "model": "Primary model",
+          "usage": {
+            "input": 1210,
+            "output": 41
+          },
+          "promptName": "support/answer",
+          "promptVersion": 12,
+          "cost": 0.004,
+          "output": [
+            {
+              "role": "assistant",
+              "content": "Choose “Forgot password” on the sign-in screen. We’ll email you a reset link. The link expires after 30 minutes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "9C2B",
+      "name": "answer-question",
+      "minutesAgo": 4,
+      "session": "a8f2",
+      "user": "u_4821",
+      "spans": [
+        {
+          "id": "9C2B.1",
+          "name": "answer-question",
+          "type": "span",
+          "depth": 0,
+          "start": 0,
+          "end": 1.8,
+          "input": "Can I change my email address?",
+          "output": "Open Account settings and select Email. Enter your new address, then follow the verification link we send you."
+        },
+        {
+          "id": "9C2B.2",
+          "name": "retrieve-context",
+          "type": "retriever",
+          "depth": 1,
+          "start": 0.03,
+          "end": 0.14,
+          "input": "change email address",
+          "output": "2 documents: Change email · Email verification"
+        },
+        {
+          "id": "9C2B.3",
+          "name": "rank-documents",
+          "type": "tool",
+          "depth": 2,
+          "start": 0.08,
+          "end": 0.13,
+          "input": "2 candidates",
+          "output": "Kept 2 of 2"
+        },
+        {
+          "id": "9C2B.4",
+          "name": "generate-answer",
+          "type": "generation",
+          "depth": 1,
+          "start": 0.18,
+          "end": 1.8,
+          "input": [
+            {
+              "role": "system",
+              "content": "You are a customer support assistant. Answer using the provided context. If you are unsure, ask a clarifying question. Keep instructions short and actionable."
+            },
+            {
+              "role": "user",
+              "content": "Can I change my email address?\n\nContext:\n2 documents: Change email · Email verification"
+            }
+          ],
+          "model": "Primary model",
+          "usage": {
+            "input": 1180,
+            "output": 64
+          },
+          "promptName": "support/answer",
+          "promptVersion": 12,
+          "cost": 0.004,
+          "output": [
+            {
+              "role": "assistant",
+              "content": "Open Account settings and select Email. Enter your new address, then follow the verification link we send you."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2E91",
+      "name": "summarize-thread",
+      "minutesAgo": 6,
+      "session": "b7d9",
+      "user": "u_1190",
+      "spans": [
+        {
+          "id": "2E91.1",
+          "name": "summarize-thread",
+          "type": "span",
+          "depth": 0,
+          "start": 0,
+          "end": 6.2,
+          "input": "Summarize the latest eight messages in this support conversation.",
+          "output": "The customer needs to change their account email. Support explained the verification steps and is waiting for the new address to be confirmed."
+        },
+        {
+          "id": "2E91.2",
+          "name": "load-messages",
+          "type": "tool",
+          "depth": 1,
+          "start": 0,
+          "end": 0.12,
+          "input": "thread b7d9",
+          "output": "8 messages"
+        },
+        {
+          "id": "2E91.3",
+          "name": "generate-summary",
+          "type": "generation",
+          "depth": 1,
+          "start": 0.15,
+          "end": 6.2,
+          "input": [
+            {
+              "role": "system",
+              "content": "Summarize the support conversation in two sentences."
+            },
+            {
+              "role": "user",
+              "content": "8 messages from thread b7d9"
+            }
+          ],
+          "output": [
+            {
+              "role": "assistant",
+              "content": "The customer needs to change their account email. Support explained the verification steps and is waiting for the new address to be confirmed."
+            }
+          ],
+          "model": "Primary model",
+          "usage": {
+            "input": 2840,
+            "output": 96
+          },
+          "cost": 0.012
+        }
+      ]
+    },
+    {
+      "id": "D0E4",
+      "name": "answer-question",
+      "minutesAgo": 11,
+      "session": "e1b4",
+      "user": "u_5512",
+      "spans": [
+        {
+          "id": "D0E4.1",
+          "name": "answer-question",
+          "type": "span",
+          "depth": 0,
+          "start": 0,
+          "end": 2.1,
+          "input": "Can I cancel and receive a refund?",
+          "output": "Yes, all purchases can be refunded at any time, regardless of the purchase date."
+        },
+        {
+          "id": "D0E4.2",
+          "name": "retrieve-context",
+          "type": "retriever",
+          "depth": 1,
+          "start": 0.03,
+          "end": 0.14,
+          "input": "cancel refund",
+          "output": "2 documents: Refund policy · Cancel a subscription"
+        },
+        {
+          "id": "D0E4.3",
+          "name": "generate-answer",
+          "type": "generation",
+          "depth": 1,
+          "start": 0.2,
+          "end": 2.1,
+          "input": [
+            {
+              "role": "system",
+              "content": "You are a customer support assistant. Answer using the provided context. If you are unsure, ask a clarifying question. Keep instructions short and actionable."
+            },
+            {
+              "role": "user",
+              "content": "Can I cancel and receive a refund?\n\nContext:\n2 documents: Refund policy · Cancel a subscription"
+            }
+          ],
+          "model": "Primary model",
+          "usage": {
+            "input": 1240,
+            "output": 22
+          },
+          "promptName": "support/answer",
+          "promptVersion": 12,
+          "cost": 0.004,
+          "output": [
+            {
+              "role": "assistant",
+              "content": "Yes, all purchases can be refunded at any time, regardless of the purchase date."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B41C",
+      "name": "answer-question",
+      "minutesAgo": 180,
+      "session": "f9a0",
+      "user": "u_2075",
+      "spans": [
+        {
+          "id": "B41C.1",
+          "name": "answer-question",
+          "type": "span",
+          "depth": 0,
+          "start": 0,
+          "end": 3.1,
+          "input": "Why was I charged twice this month?"
+        },
+        {
+          "id": "B41C.2",
+          "name": "retrieve-context",
+          "type": "retriever",
+          "depth": 1,
+          "start": 0.03,
+          "end": 0.14,
+          "input": "charged twice",
+          "output": "2 documents: Duplicate charges · Billing cycles"
+        },
+        {
+          "id": "B41C.3",
+          "name": "generate-answer",
+          "type": "generation",
+          "depth": 1,
+          "start": 0.2,
+          "end": 3.1,
+          "input": [
+            {
+              "role": "system",
+              "content": "You are a customer support assistant. Answer using the provided context. If you are unsure, ask a clarifying question. Keep instructions short and actionable."
+            },
+            {
+              "role": "user",
+              "content": "Why was I charged twice this month?\n\nContext:\n2 documents: Duplicate charges · Billing cycles"
+            }
+          ],
+          "model": "Primary model",
+          "usage": {
+            "input": 1150,
+            "output": 0
+          },
+          "promptName": "support/answer",
+          "promptVersion": 12,
+          "level": "ERROR",
+          "statusMessage": "429 Too Many Requests: the provider rejected the request after 3 retries"
+        }
+      ]
+    },
+    {
+      "id": "5A08",
+      "name": "search-documents",
+      "minutesAgo": 2880,
+      "session": "c3e8",
+      "user": "u_3307",
+      "spans": [
+        {
+          "id": "5A08.1",
+          "name": "search-documents",
+          "type": "span",
+          "depth": 0,
+          "start": 0,
+          "end": 0.3,
+          "input": "Find account recovery documentation.",
+          "output": "Found three documents: password reset, email verification, and account access troubleshooting."
+        },
+        {
+          "id": "5A08.2",
+          "name": "embed-query",
+          "type": "generation",
+          "depth": 1,
+          "start": 0.01,
+          "end": 0.09,
+          "input": "Find account recovery documentation.",
+          "output": "Vector · 1,536 dimensions",
+          "model": "Embedding model",
+          "usage": {
+            "input": 12
+          },
+          "cost": 0.001
+        },
+        {
+          "id": "5A08.3",
+          "name": "rank-documents",
+          "type": "tool",
+          "depth": 1,
+          "start": 0.1,
+          "end": 0.28,
+          "input": "24 candidates",
+          "output": "Kept 3 of 24"
+        }
+      ]
+    }
+  ],
+  "review": [
+    {
+      "traceId": "7C1D",
+      "docs": [
+        {
+          "title": "Password reset",
+          "excerpt": "Reset links are valid for 30 minutes."
+        },
+        {
+          "title": "Sign-in help",
+          "excerpt": "Use “Forgot password” on the sign-in screen."
+        },
+        {
+          "title": "Account security",
+          "excerpt": "We never ask for your password by email."
+        }
+      ]
+    },
+    {
+      "traceId": "9C2B",
+      "docs": [
+        {
+          "title": "Change email",
+          "excerpt": "Go to Account settings → Email to update your address."
+        },
+        {
+          "title": "Email verification",
+          "excerpt": "We send a verification link to the new address."
+        }
+      ]
+    },
+    {
+      "traceId": "D0E4",
+      "docs": [
+        {
+          "title": "Refund policy",
+          "excerpt": "Purchases can be refunded within 30 days."
+        },
+        {
+          "title": "Cancel a subscription",
+          "excerpt": "Cancelling stops renewal. It does not refund past charges."
+        }
+      ]
+    }
+  ],
+  "prompts": [
+    {
+      "name": "support/answer",
+      "type": "chat",
+      "minutesAgo": 120,
+      "versionCount": 13,
+      "labels": {
+        "production": 12,
+        "staging": 13,
+        "latest": 13
+      },
+      "versions": [
+        {
+          "version": 12,
+          "prompt": [
+            {
+              "role": "system",
+              "content": "You are a customer support assistant. Answer using the provided context. If you are unsure, ask a clarifying question. Keep instructions short and actionable."
+            },
+            {
+              "role": "user",
+              "content": "{{question}}\n\nContext:\n{{context}}"
+            }
+          ]
+        },
+        {
+          "version": 13,
+          "commitMessage": "More precise account recovery instructions.",
+          "prompt": [
+            {
+              "role": "system",
+              "content": "You are a customer support assistant. Use only the supplied help-center context. For account recovery, explain each verification step and mention link expiry. If information is missing, ask one clarifying question."
+            },
+            {
+              "role": "user",
+              "content": "{{question}}\n\nContext:\n{{context}}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "support/classify",
+      "type": "text",
+      "minutesAgo": 4320,
+      "versionCount": 5,
+      "labels": {
+        "production": 4,
+        "latest": 5
+      },
+      "versions": [
+        {
+          "version": 4,
+          "prompt": "Classify the customer question as account, billing, or product. Return only the category. Use the context to resolve ambiguous questions.\n\nQuestion: {{question}}"
+        },
+        {
+          "version": 5,
+          "commitMessage": "Pick the primary intent for mixed questions.",
+          "prompt": "Classify the question as account, billing, or product. Return only the category. If the question spans categories, select the primary customer intent.\n\nQuestion: {{question}}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salle 215 Privacy Policy</title>
+<meta name="description" content="How the Salle 215 iOS app handles your data.">
+<style>
+  :root { color-scheme: light dark; --bg: #fff; --fg: #1d1d1f; --muted: #6e6e73; --rule: #e5e5ea; --accent: #2f5bea; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #000; --fg: #f5f5f7; --muted: #98989d; --rule: #2c2c2e; --accent: #6e8dff; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 48px 20px 64px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.02em; }
+  h2 { font-size: 20px; margin: 36px 0 8px; }
+  .meta { color: var(--muted); margin: 0 0 28px; }
+  .summary { border-left: 3px solid var(--accent); padding: 2px 0 2px 16px; }
+  a { color: var(--accent); }
+  ul { padding-left: 22px; }
+  li { margin: 6px 0; }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Salle 215 Privacy Policy</h1>
+  <p class="meta">Effective October 11, 2026</p>
+
+  <p class="summary">Salle 215 does not collect your data. It has no accounts, analytics, advertising, tracking or third-party SDKs, and we run no server that receives anything from the app.</p>
+
+  <p>Salle 215 is an iPhone and iPad app for viewing and reviewing data in a <a href="https://langfuse.com">Langfuse</a> project. It is published by Sardorbek Pulatov (“we”). This policy explains what the app stores and where your data goes.</p>
+
+  <h2>Connecting to Langfuse</h2>
+  <p>To use live data, you enter your Langfuse instance URL, a project public key, a secret key and, optionally, an environment.</p>
+  <ul>
+    <li>These details are stored only on your device, in the iOS Keychain. They are available only while the device is unlocked and are not synced or transferred to other devices.</li>
+    <li>The app connects directly from your device to the instance you entered, over HTTPS. It does not follow redirects to other hosts.</li>
+    <li>Traces, metrics, prompts and scores loaded from your project are shown in the app and kept in memory while it runs. We never receive them.</li>
+  </ul>
+
+  <h2>Reviews you submit</h2>
+  <p>When you rate a trace in a connected project, the app writes a score to that Langfuse project, including any reasons and note you add. Undo deletes that score. This data lives in your Langfuse project and is governed by your Langfuse provider’s privacy policy, whether Langfuse Cloud or your own self-hosted instance.</p>
+
+  <h2>Sample project</h2>
+  <p>The built-in sample project works without a connection. Ratings you give in the sample are saved on your device only.</p>
+
+  <h2>Removing your data</h2>
+  <p>Disconnecting removes the saved keys from the Keychain and clears loaded data. Disconnect before deleting the app to remove your saved credentials. Deleting the app removes its sample ratings and app-local preferences. Data in your Langfuse project is managed in Langfuse.</p>
+
+  <h2>Apple</h2>
+  <p>If you choose to share analytics with app developers in iOS Settings, Apple may provide us with anonymous crash reports and usage statistics. Apple’s handling of this data is described in <a href="https://www.apple.com/legal/privacy/">Apple’s Privacy Policy</a>.</p>
+
+  <h2>Children</h2>
+  <p>Salle 215 is a developer tool and is not directed at children.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, we will update this page and its effective date.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about privacy: <a href="mailto:privacy@room215.me">privacy@room215.me</a></p>
+
+  <footer>Salle 215 is an independent app and is not affiliated with or endorsed by Langfuse.</footer>
+</main>
+</body>
+</html>

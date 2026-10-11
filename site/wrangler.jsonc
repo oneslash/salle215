@@ -1,0 +1,7 @@
+{
+  "name": "salle",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./public" },
+  "routes": [{ "pattern": "salle.room215.me", "custom_domain": true }],
+  "workers_dev": false
+}

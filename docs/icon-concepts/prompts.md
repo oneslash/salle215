@@ -1,0 +1,16 @@
+# Salle 215 icon concepts
+
+Generated with the built-in image generation tool. These are alternatives for review; the installed app icon is unchanged.
+
+## 01 · Monogram
+
+Use case: logo-brand. Asset type: iOS app icon for Salle 215, a native Langfuse client for inspecting LLM traces and reviews. Create one simple, cool, distinctive app icon, square 1024x1024. The background fills the entire square edge to edge in warm off-white #F4F4F1, with no rounded outer corners; iOS will apply the icon mask. Center one bold charcoal #1B1B19 abstract geometric A-shaped mark, made from two chunky diagonal strokes and a short crossbar with a deliberate small negative-space gap. The silhouette should feel like a precise trace path and an architectural monogram, highly balanced, confident, and legible at 32px. Flat vector-like styling, crisp edges, optical centering, generous margin, the symbol occupies about 60 percent of the square. Only one symbol on one background. No wordmark, no typography beyond the abstract monogram, no gradients, no texture, no shadow, no border, no mockup, no phone, no watermark, no comparison grid.
+
+## 02 · Trace
+
+Use case: logo-brand. Asset type: iOS app icon for Salle 215, a native Langfuse client for inspecting LLM traces and reviews. Create one simple, cool, distinctive app icon, square 1024x1024. The background fills the entire square edge to edge in near-black charcoal #1B1B19, with no rounded outer corners; iOS will apply the icon mask. Center a bold burnt-orange #F58B42 branching trace symbol: a short horizontal stem on the left splits cleanly into two broad smoothly bent paths toward the upper right and lower right, ending in two solid round nodes. One connected mark, no more than three nodes total. Think of an elegant minimal execution graph, expertly reduced to a recognizable emblem. Flat vector-like styling, thick uniform strokes with rounded ends, crisp edges, optical centering, generous margin, the mark occupies about 60 percent of the square. Only one symbol on one background. No lettering, no text, no gradients, no texture, no shadows, no border, no mockup, no phone, no watermark, no comparison grid.
+
+## 03 · Layers
+
+Use case: logo-brand. Asset type: iOS app icon for Salle 215, a native Langfuse client for inspecting LLM traces and reviews. Create one simple, cool, distinctive app icon, square 1024x1024. The background fills the entire square edge to edge in deep charcoal #1B1B19, with no rounded outer corners; iOS will apply the icon mask. Center an elegant minimal stack made of three bold warm-off-white #F4F4F1 flattened rounded diamond outlines, each offset downward just enough to form a single compact layered emblem. Give the top diamond one small burnt-orange #F58B42 circular point precisely at its center, hinting at a trace under observation. Reduce the structure to large uncomplicated shapes that read clearly at 32px, with ample negative space. Flat vector-like styling, precise thick strokes, crisp edges, optical centering, generous margin, symbol occupies about 60 percent of the square. Only one emblem on one background. No lettering, no text, no gradients, no texture, no shadow, no border, no mockup, no phone, no watermark, no comparison grid.
+

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salle 215 Support</title>
+<meta name="description" content="Help with connecting and using the Salle 215 iOS app.">
+<style>
+  :root { color-scheme: light dark; --bg: #fff; --fg: #1d1d1f; --muted: #6e6e73; --rule: #e5e5ea; --accent: #2f5bea; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #000; --fg: #f5f5f7; --muted: #98989d; --rule: #2c2c2e; --accent: #6e8dff; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 48px 20px 64px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.02em; }
+  h2 { font-size: 20px; margin: 36px 0 8px; }
+  h3 { font-size: 17px; margin: 22px 0 4px; }
+  .meta { color: var(--muted); margin: 0 0 28px; }
+  .summary { border-left: 3px solid var(--accent); padding: 2px 0 2px 16px; }
+  a { color: var(--accent); }
+  code { font: 15px ui-monospace, "SF Mono", monospace; overflow-wrap: anywhere; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 6px 0; }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Salle 215 Support</h1>
+  <p class="meta">For iPhone and iPad with iOS 26 or later</p>
+
+  <p class="summary">Need help? Email <a href="mailto:support@room215.me">support@room215.me</a>. Tell us your device, iOS version and what you were doing. Never send your API keys.</p>
+
+  <h2>Getting started</h2>
+  <h3>Try it without an account</h3>
+  <p>On the first screen, tap <strong>Explore a sample project</strong>. It opens a sample project with traces, metrics, prompts and a review queue. Nothing is sent anywhere.</p>
+
+  <h3>Connect your Langfuse project</h3>
+  <ol>
+    <li>In Langfuse, open your project’s <strong>Settings → API Keys</strong> and create a key pair.</li>
+    <li>In Salle 215, tap <strong>Connect to Langfuse</strong>.</li>
+    <li>Enter your instance URL, the public key and the secret key. Optionally, enter an environment to show only that environment’s data.</li>
+  </ol>
+  <p>The instance URL must match your project’s region, for example <code>https://cloud.langfuse.com</code> (EU) or <code>https://us.cloud.langfuse.com</code> (US). Self-hosted instances must run Langfuse v4 and use HTTPS.</p>
+
+  <h2>Common questions</h2>
+  <h3>“The API keys were rejected”</h3>
+  <p>Check that both keys belong to the same project and that the instance URL is your project’s region. Keys from an EU project don’t work against the US URL, and the other way around.</p>
+
+  <h3>“Langfuse’s API limit was reached”</h3>
+  <p>Langfuse limits how many requests an account can make. Salle 215 waits the time Langfuse asks for. Try again in a minute.</p>
+
+  <h3>A report reached the row limit</h3>
+  <p>Choose a shorter time range on Overview.</p>
+
+  <h3>Where do my reviews go?</h3>
+  <p>In a connected project, each Good or Needs work rating is saved to that project as a score named <code>salle215-review-thumbs</code>, with any reasons and note you add. Undo removes it. In the sample project, ratings stay on your device.</p>
+
+  <h3>How do I switch projects or remove my keys?</h3>
+  <p>Open the project menu at the top of the screen and choose <strong>Disconnect</strong>. This removes the keys from your device. Then connect to another project.</p>
+
+  <h2>Privacy</h2>
+  <p>Salle 215 doesn’t collect your data. Read the <a href="/privacy/">privacy policy</a>.</p>
+
+  <footer>Salle 215 is an independent app and is not affiliated with or endorsed by Langfuse.</footer>
+</main>
+</body>
+</html>
