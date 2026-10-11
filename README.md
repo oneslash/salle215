@@ -1,6 +1,6 @@
 # Salle 215
 
-A native SwiftUI iOS app based on `concepts/salle215.html`, targeting **iOS 26.0 and later**. Connect to a Langfuse Cloud or self-hosted v4 project, or explore the bundled Support agent sample.
+A native SwiftUI iOS app for Langfuse, targeting **iOS 26.0 and later**. Connect to a Langfuse Cloud or self-hosted v4 project, or explore the bundled Support agent sample.
 
 ## Run
 
@@ -21,7 +21,7 @@ xcodegen generate
 - **Review:** source documents, Good and Needs work ratings, multiple feedback reasons, optional notes, skipping, undo, queue completion, and confirmed restart. Sample ratings persist locally; live ratings are stored in Langfuse. Feedback stays attached to the original answer across windows, and an existing rating cannot be overwritten by a stale submission.
 - **Prompts:** production and staging versions, template messages, and sentence comparisons showing added, removed, and unchanged content.
 - **Search:** trace IDs, sessions, users, trace names, input/output, and error titles; recent query shortcuts and empty results.
-- **Presentation:** system tab bar and navigation, sheets, menus, confirmation dialogs, light/dark palettes, Dynamic Type, and an Salle 215 app icon, styled after the concept. Review controls stack vertically at accessibility text sizes. Each iPad window keeps its own tab, navigation, time range, filters, and search.
+- **Presentation:** system tab bar and navigation, sheets, menus, confirmation dialogs, light/dark palettes, Dynamic Type, and a Salle 215 app icon. Review controls stack vertically at accessibility text sizes. Each iPad window keeps its own tab, navigation, time range, filters, and search.
 
 ## Test
 
@@ -45,9 +45,9 @@ The real smoke test is opt-in. With a local `.env` containing `LANGFUSE_BASE_URL
 
 Screenshots captured from the running app and UI tests are saved in `docs/screenshots/`.
 
-The October 11 UI implementation report is in [review/2026-10-11/index.html](review/2026-10-11/index.html), with fresh simulator captures and a comparison of the original screens, generated concepts, and implementation. It covers persistent project/environment context, concise trace errors, a shared-axis waterfall, labeled metric charts, neutral pinned review choices, expanded evidence, and actionable empty states. Failed Overview refreshes retain the previous completed report and its original timestamp.
+The October 11 UI implementation covers persistent project/environment context, concise trace errors, a shared-axis waterfall, labeled metric charts, neutral pinned review choices, expanded evidence, and actionable empty states. Failed Overview refreshes retain the previous completed report and its original timestamp.
 
-After the UI implementation, 60 distinct tests passed on iPhone 17 Pro / iOS 26.5 across regression and capture runs; three opt-in live checks were skipped. The report contains 44 fresh simulator screenshots, including connected review/feedback and a rate-limited refresh with retained metrics. See [validation details](review/2026-10-11/implemented/validation.json).
+After the UI implementation, 60 distinct tests passed on iPhone 17 Pro / iOS 26.5 across regression and capture runs; three opt-in live checks were skipped.
 
 ## Source
 
@@ -61,7 +61,7 @@ The public marketing, support and privacy pages are maintained in `site/public/`
 - `BackendResources.swift`, `LiveResourceViews.swift`: prompts, scores, reviews, session fetches, and server search.
 - `Theme.swift`: adaptive colors and shared screen/row components.
 - `OverviewView.swift`, `TraceViews.swift`, `ReviewView.swift`, `PromptViews.swift`: native screens.
-- `Resources/SampleData.json`: the concept’s sample dataset.
+- `Resources/SampleData.json`: the bundled sample dataset.
 - `Resources/PrivacyInfo.xcprivacy`: the app’s privacy manifest, declaring its local `UserDefaults` use.
 - `Salle215Tests/` and `Salle215UITests/`: model and simulator flow tests.
 
